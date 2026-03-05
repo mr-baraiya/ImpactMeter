@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ImpactMeter Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cricketGreen: "#0B6E4F",
+            cricketGold: "#FFD700",
+            cricketOrange: "#F39C12",
+            lightBg: "#F5F7F6"
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-lightBg text-slate-800 min-h-screen">
+  <main class="max-w-7xl mx-auto px-4 py-6 md:py-8">
+    <header class="mb-6">
+      <h1 class="text-2xl md:text-3xl font-bold text-cricketGreen">ImpactMeter - Cricket Player Impact Analytics</h1>
+      <p class="text-sm text-slate-600 mt-1">Simple dashboard for impact score, trend, context, and rankings.</p>
+    </header>
+
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-5 mb-6">
+      <label for="playerSelect" class="block text-sm font-semibold mb-2">Select Player</label>
+      <select id="playerSelect" class="w-full md:w-96 border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cricketGreen"></select>
+      <p id="statusMsg" class="text-xs text-slate-500 mt-2"></p>
+    </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+        <h2 class="text-lg font-semibold mb-3">Impact Score</h2>
+        <div class="text-4xl font-bold text-cricketGreen mb-3">
+          <span id="impactScoreValue">0</span>
+          <span class="text-lg font-medium text-slate-600">/ 100</span>
+        </div>
+
+        <div class="h-52 md:h-56">
+          <canvas id="gaugeChart"></canvas>
+        </div>
+        <div class="relative mt-2">
+          <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div id="gaugeFill" class="h-full bg-gradient-to-r from-cricketOrange via-cricketGold to-cricketGreen" style="width: 0%"></div>
+          </div>
+          <div class="flex justify-between text-xs text-slate-500 mt-2">
+            <span>0</span>
+            <span>25</span>
+            <span>50</span>
+            <span>75</span>
+            <span>100</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+        <h2 class="text-lg font-semibold mb-3">Why This Score?</h2>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span>Runs Contribution</span><span id="breakRuns" class="font-semibold">-</span></div>
+          <div class="flex justify-between"><span>Strike Rate Influence</span><span id="breakStrikeRate" class="font-semibold">-</span></div>
+          <div class="flex justify-between"><span>Match Phase Context</span><span id="breakContext" class="font-semibold">-</span></div>
+          <div class="flex justify-between"><span>Pressure Influence</span><span id="breakPressure" class="font-semibold">-</span></div>
+          <div class="flex justify-between"><span>Clutch Factor</span><span id="breakClutch" class="font-semibold">-</span></div>
+          <hr class="my-2" />
+          <div class="flex justify-between text-base"><span class="font-semibold">Final Impact Score</span><span id="breakFinal" class="font-bold text-cricketGreen">-</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-6">
+      <h2 class="text-lg font-semibold mb-3">Impact Trend (Last 10 Innings)</h2>
+      <div class="h-72 md:h-80">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+        <h2 class="text-lg font-semibold mb-3">Phase Contribution</h2>
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between text-sm mb-1"><span>Powerplay</span><span id="phasePowerplay">0%</span></div>
+            <div class="h-2 bg-slate-200 rounded"><div id="phasePowerplayBar" class="h-full bg-cricketGreen rounded" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1"><span>Middle</span><span id="phaseMiddle">0%</span></div>
+            <div class="h-2 bg-slate-200 rounded"><div id="phaseMiddleBar" class="h-full bg-cricketGold rounded" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1"><span>Death Overs</span><span id="phaseDeath">0%</span></div>
+            <div class="h-2 bg-slate-200 rounded"><div id="phaseDeathBar" class="h-full bg-cricketOrange rounded" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+        <h2 class="text-lg font-semibold mb-3">Top Impact Players</h2>
+        <div class="overflow-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left border-b border-slate-200">
+                <th class="py-2 pr-2">Rank</th>
+                <th class="py-2 pr-2">Player</th>
+                <th class="py-2 text-right">Impact</th>
+              </tr>
+            </thead>
+            <tbody id="rankingTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+        <h2 class="text-lg font-semibold mb-3">Compare Two Players</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          <div>
+            <label for="compareASelect" class="block text-xs font-semibold mb-1">Player A</label>
+            <select id="compareASelect" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></select>
+          </div>
+          <div>
+            <label for="compareBSelect" class="block text-xs font-semibold mb-1">Player B</label>
+            <select id="compareBSelect" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-sm mb-3">
+          <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
+            <p class="text-slate-500">Player A Impact</p>
+            <p id="compareAScore" class="text-xl font-bold text-cricketGreen">-</p>
+          </div>
+          <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
+            <p class="text-slate-500">Player B Impact</p>
+            <p id="compareBScore" class="text-xl font-bold text-cricketOrange">-</p>
+          </div>
+        </div>
+        <div class="h-64">
+          <canvas id="compareTrendChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+        <h2 class="text-lg font-semibold mb-3">Impact Score Distribution</h2>
+        <div class="h-64 mb-4">
+          <canvas id="distributionChart"></canvas>
+        </div>
+
+        <h3 class="text-sm font-semibold mb-2">Feature Importance (Heuristic)</h3>
+        <div class="space-y-2 text-sm">
+          <div>
+            <div class="flex justify-between"><span>Strike Rate</span><span>34%</span></div>
+            <div class="h-2 bg-slate-200 rounded"><div class="h-full bg-cricketGreen rounded" style="width:34%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between"><span>Pressure Index</span><span>27%</span></div>
+            <div class="h-2 bg-slate-200 rounded"><div class="h-full bg-cricketGold rounded" style="width:27%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between"><span>Runs Scored</span><span>24%</span></div>
+            <div class="h-2 bg-slate-200 rounded"><div class="h-full bg-cricketOrange rounded" style="width:24%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between"><span>Match Phase</span><span>15%</span></div>
+            <div class="h-2 bg-slate-200 rounded"><div class="h-full bg-slate-500 rounded" style="width:15%"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./script.js"></script>
+</body>
+</html>
