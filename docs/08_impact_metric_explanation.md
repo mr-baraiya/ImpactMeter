@@ -2,6 +2,45 @@
 
 This document describes the current ImpactMeter scoring logic implemented in this repository.
 
+## Definition of Impact
+
+Impact represents the overall contribution of a player to the match outcome, considering not only their raw performance but also the context and pressure of the game situation.
+
+In cricket, traditional statistics such as runs scored or wickets taken do not always capture how important a performance was within the match situation. ImpactMeter addresses this by combining performance metrics with contextual factors.
+
+### Conceptual Definition
+
+`Impact = Performance x Match Context x Game Situation`
+
+Where:
+
+Performance:
+Direct statistical contribution such as runs scored, strike rate, wickets taken, or economy rate.
+
+Match Context:
+The phase of the match (powerplay, middle overs, death overs), team situation, and opposition conditions.
+
+Game Situation / Pressure:
+The difficulty of the moment in the game, including required run rate, wickets lost, and remaining overs.
+
+### Impact Score
+
+The final Impact Score is normalized to a 0-100 scale, where:
+
+| Score Range | Interpretation |
+|---|---|
+| 0-20 | Very low impact |
+| 20-40 | Below average impact |
+| 40-60 | Neutral / average impact |
+| 60-80 | Strong impact |
+| 80-100 | Match-winning impact |
+
+The score is calculated on a rolling window of the last 10 innings, with higher weight given to recent performances to reflect current player form.
+
+### One-Line Definition
+
+Impact is a context-aware measure of how much a player's performance influences the outcome of a match.
+
 ## 1. Problem
 
 Traditional cricket metrics (average, strike rate, wickets) often miss the full match story because they do not directly encode context and pressure.

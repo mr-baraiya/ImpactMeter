@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="ImpactMeter logic design and scoring explanation" />
+    <meta
+      name="description"
+      content="ImpactMeter logic design and scoring explanation"
+    />
     <title>ImpactMeter Technical Design & Methodology</title>
     <style>
       :root {
@@ -15,7 +18,9 @@
         --border: #e2e8f0;
       }
 
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -92,8 +97,12 @@
         font-size: 17px;
       }
 
-      p { margin: 8px 0; }
-      ul { margin: 8px 0 8px 22px; }
+      p {
+        margin: 8px 0;
+      }
+      ul {
+        margin: 8px 0 8px 22px;
+      }
 
       pre {
         background: #0f172a;
@@ -115,7 +124,10 @@
         border-radius: 0;
       }
 
-      .lead { color: var(--muted); margin-bottom: 16px; }
+      .lead {
+        color: var(--muted);
+        margin-bottom: 16px;
+      }
     </style>
   </head>
   <body>
@@ -130,16 +142,137 @@
       <article class="doc">
         <h1>ImpactMeter Technical Design &amp; Methodology</h1>
         <p class="lead">
-          This document describes the current ImpactMeter scoring logic implemented in this repository.
+          This document describes the current ImpactMeter scoring logic
+          implemented in this repository.
+        </p>
+
+        <h2>Definition of Impact</h2>
+        <p>
+          Impact represents the overall contribution of a player to the match
+          outcome, considering not only raw performance but also match context
+          and pressure.
+        </p>
+        <p>
+          In cricket, traditional statistics such as runs scored or wickets
+          taken do not always capture how important a performance was within the
+          match situation. ImpactMeter addresses this by combining performance
+          metrics with contextual factors.
+        </p>
+
+        <h3>Conceptual Definition</h3>
+        <p>
+          <code>Impact = Performance x Match Context x Game Situation</code>
+        </p>
+        <p>
+          <strong>Performance</strong><br />Direct statistical contribution such
+          as runs scored, strike rate, wickets taken, or economy rate.
+        </p>
+        <p>
+          <strong>Match Context</strong><br />The phase of the match (powerplay,
+          middle overs, death overs), team situation, and opposition conditions.
+        </p>
+        <p>
+          <strong>Game Situation / Pressure</strong><br />The difficulty of the
+          moment in the game, including required run rate, wickets lost, and
+          remaining overs.
+        </p>
+
+        <h3>Impact Score</h3>
+        <p>The final Impact Score is normalized to a 0-100 scale, where:</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 10px 0">
+          <thead>
+            <tr>
+              <th
+                style="
+                  text-align: left;
+                  border: 1px solid var(--border);
+                  padding: 8px;
+                  background: #f8fafc;
+                "
+              >
+                Score Range
+              </th>
+              <th
+                style="
+                  text-align: left;
+                  border: 1px solid var(--border);
+                  padding: 8px;
+                  background: #f8fafc;
+                "
+              >
+                Interpretation
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border: 1px solid var(--border); padding: 8px">
+                0-20
+              </td>
+              <td style="border: 1px solid var(--border); padding: 8px">
+                Very low impact
+              </td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid var(--border); padding: 8px">
+                20-40
+              </td>
+              <td style="border: 1px solid var(--border); padding: 8px">
+                Below average impact
+              </td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid var(--border); padding: 8px">
+                40-60
+              </td>
+              <td style="border: 1px solid var(--border); padding: 8px">
+                Neutral / average impact
+              </td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid var(--border); padding: 8px">
+                60-80
+              </td>
+              <td style="border: 1px solid var(--border); padding: 8px">
+                Strong impact
+              </td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid var(--border); padding: 8px">
+                80-100
+              </td>
+              <td style="border: 1px solid var(--border); padding: 8px">
+                Match-winning impact
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          The score is calculated on a rolling window of the last 10 innings,
+          with higher weight given to recent performances to reflect current
+          player form.
+        </p>
+
+        <h3>One-Line Definition</h3>
+        <p>
+          Impact is a context-aware measure of how much a player's performance
+          influences the outcome of a match.
         </p>
 
         <h2>1. Problem</h2>
         <p>
-          Traditional cricket metrics (average, strike rate, wickets) often miss the full match story because they do not directly encode context and pressure.
+          Traditional cricket metrics (average, strike rate, wickets) often miss
+          the full match story because they do not directly encode context and
+          pressure.
         </p>
-        <p>ImpactMeter addresses this by combining performance with match situation.</p>
+        <p>
+          ImpactMeter addresses this by combining performance with match
+          situation.
+        </p>
         <p>Core goal:</p>
-        <p><code>Impact = Performance x Match Context x Game Situation</code></p>
+        <p>
+          <code>Impact = Performance x Match Context x Game Situation</code>
+        </p>
 
         <h2>2. Data Pipeline</h2>
         <pre><code class="language-text">Raw IPL JSON
@@ -159,27 +292,48 @@ ML-Assisted Impact Score (0-100)
 Rolling last 10 innings
 </code></pre>
         <p>
-      ImpactMeter primarily uses a rule-based scoring system for interpretability, with an additional machine learning layer to learn deeper patterns from historical match data.
+          ImpactMeter primarily uses a rule-based scoring system for
+          interpretability, with an additional machine learning layer to learn
+          deeper patterns from historical match data.
         </p>
 
         <h2>2.1 System Architecture</h2>
         <p><strong>Data Layer</strong><br />IPL ball-by-ball dataset</p>
-        <p><strong>Feature Engineering Layer</strong><br />Context + pressure features</p>
-        <p><strong>Impact Modeling Layer</strong><br />Rule-based scoring engine<br />Random Forest ML predictor</p>
-        <p><strong>Analytics Layer</strong><br />Player impact scoring<br />Feature importance extraction</p>
-        <p><strong>Visualization Layer</strong><br />Interactive dashboard<br />Impact gauge, role-based stats, trend charts</p>
+        <p>
+          <strong>Feature Engineering Layer</strong><br />Context + pressure
+          features
+        </p>
+        <p>
+          <strong>Impact Modeling Layer</strong><br />Rule-based scoring
+          engine<br />Random Forest ML predictor
+        </p>
+        <p>
+          <strong>Analytics Layer</strong><br />Player impact scoring<br />Feature
+          importance extraction
+        </p>
+        <p>
+          <strong>Visualization Layer</strong><br />Interactive dashboard<br />Impact
+          gauge, role-based stats, trend charts
+        </p>
 
         <h2>3. Impact Score Calculation</h2>
-        <p>Impact score is computed using transparent weighted scoring logic.</p>
+        <p>
+          Impact score is computed using transparent weighted scoring logic.
+        </p>
         <pre><code class="language-text">Impact Score =
 0.4 x Performance Score
 + 0.35 x Context Score
 + 0.25 x Pressure Score
 </code></pre>
         <p>Then normalize to a common scale:</p>
-        <p>Impact Score is normalized to a 0-100 scale using min-max scaling.</p>
         <p>
-          For hackathon evaluation, the final score is centered so <strong>50 represents a neutral baseline</strong>, computed on a rolling last 10 innings window with recency weighting, and updated after each completed match (batch update, not real-time).
+          Impact Score is normalized to a 0-100 scale using min-max scaling.
+        </p>
+        <p>
+          For hackathon evaluation, the final score is centered so
+          <strong>50 represents a neutral baseline</strong>, computed on a
+          rolling last 10 innings window with recency weighting, and updated
+          after each completed match (batch update, not real-time).
         </p>
         <p>Where:</p>
 
@@ -206,16 +360,27 @@ Rolling last 10 innings
         <h3>Pressure Score</h3>
         <p>Reflects difficulty of the situation.</p>
         <p>Example conceptual formula:</p>
-        <p><code>Pressure = Required Run Rate x Wickets Lost Factor x Overs Remaining Factor</code></p>
+        <p>
+          <code
+            >Pressure = Required Run Rate x Wickets Lost Factor x Overs
+            Remaining Factor</code
+          >
+        </p>
 
         <h2>4. Model Explainability</h2>
         <p>
-          A rule-based baseline was chosen to maintain transparency and interpretability of the impact score.
+          A rule-based baseline was chosen to maintain transparency and
+          interpretability of the impact score.
         </p>
         <p>
-          Each component of the score can be directly traced to cricket performance metrics, making the system easy to understand for analysts and non-technical users.
+          Each component of the score can be directly traced to cricket
+          performance metrics, making the system easy to understand for analysts
+          and non-technical users.
         </p>
-        <p>This level of explainability is useful for both technical reviewers and cricket analysts.</p>
+        <p>
+          This level of explainability is useful for both technical reviewers
+          and cricket analysts.
+        </p>
 
         <h2>5. Rolling Impact</h2>
         <p>Final player form signal uses recent-match weighting.</p>
@@ -228,19 +393,38 @@ Rolling last 10 innings
           <li>Match9 -&gt; weight 0.9</li>
           <li>Match8 -&gt; weight 0.8</li>
         </ul>
-        <p>This helps ImpactMeter capture current form, not just long-term average.</p>
+        <p>
+          This helps ImpactMeter capture current form, not just long-term
+          average.
+        </p>
 
         <h2>6. Role-Aware Evaluation</h2>
         <p>ImpactMeter evaluates players differently based on role.</p>
-        <p>Batters are evaluated using batting metrics such as runs, strike rate, and boundaries.</p>
-        <p>Bowlers are evaluated using bowling metrics such as wickets, economy rate, and dot ball percentage.</p>
-        <p>All-rounders are evaluated using a balanced combination of batting and bowling metrics.</p>
-        <p>This prevents bowlers from being incorrectly evaluated using batting-only statistics.</p>
-        <p>This directly addresses role-mismatch issues in player evaluation.</p>
+        <p>
+          Batters are evaluated using batting metrics such as runs, strike rate,
+          and boundaries.
+        </p>
+        <p>
+          Bowlers are evaluated using bowling metrics such as wickets, economy
+          rate, and dot ball percentage.
+        </p>
+        <p>
+          All-rounders are evaluated using a balanced combination of batting and
+          bowling metrics.
+        </p>
+        <p>
+          This prevents bowlers from being incorrectly evaluated using
+          batting-only statistics.
+        </p>
+        <p>
+          This directly addresses role-mismatch issues in player evaluation.
+        </p>
 
         <h2>7. System Extensions</h2>
         <p>
-          ImpactMeter extends its transparent rule-based scoring system with an ML-assisted layer to compute player impact using performance, match context, and pressure indicators.
+          ImpactMeter extends its transparent rule-based scoring system with an
+          ML-assisted layer to compute player impact using performance, match
+          context, and pressure indicators.
         </p>
         <p>This hybrid approach combines:</p>
         <ul>
@@ -250,7 +434,8 @@ Rolling last 10 innings
 
         <h2>8. ML-Assisted Impact Prediction Layer</h2>
         <p>
-          ImpactMeter keeps the current rule-based system as the baseline and adds an ML-assisted layer.
+          ImpactMeter keeps the current rule-based system as the baseline and
+          adds an ML-assisted layer.
         </p>
         <pre><code class="language-text">Ball-by-ball data
       ↓
@@ -263,22 +448,29 @@ Random Forest Model
 ML Impact Score
 </code></pre>
         <p>
-          The ML layer does not replace the rule-based system but augments it by validating feature importance and learning non-linear relationships between context, pressure, and player performance.
+          The ML layer does not replace the rule-based system but augments it by
+          validating feature importance and learning non-linear relationships
+          between context, pressure, and player performance.
         </p>
         <p>
-          Rule-based scoring provides interpretability, while ML learns hidden non-linear patterns from context and performance data.
+          Rule-based scoring provides interpretability, while ML learns hidden
+          non-linear patterns from context and performance data.
         </p>
         <p><strong>Demo line:</strong></p>
         <p>
-          "The ML score acts as a data-driven validation layer for the rule-based cricket knowledge model."
+          "The ML score acts as a data-driven validation layer for the
+          rule-based cricket knowledge model."
         </p>
         <p>
-          The rule-based score remains the primary impact metric, while the ML layer provides additional analytical insight and helps validate the relative importance of cricket performance features.
+          The rule-based score remains the primary impact metric, while the ML
+          layer provides additional analytical insight and helps validate the
+          relative importance of cricket performance features.
         </p>
 
         <h2>9. ML-Based Implementation Details</h2>
         <p>
-          The current ML-assisted module is implemented with Random Forest regression using engineered match features.
+          The current ML-assisted module is implemented with Random Forest
+          regression using engineered match features.
         </p>
 
         <h3>Target Variable</h3>
@@ -296,29 +488,54 @@ ML Impact Score
 
         <h3>Normalization</h3>
         <p>
-          Model predictions use fixed scaling to 0-100 via clipping (<code>np.clip(prediction, 0, 100)</code>) to keep ML scores stable across dataset changes without dataset min-max normalization.
+          Model predictions use fixed scaling to 0-100 via clipping (<code
+            >np.clip(prediction, 0, 100)</code
+          >) to keep ML scores stable across dataset changes without dataset
+          min-max normalization.
         </p>
         <p>
-          A post-prediction calibration step aligns ML scores with rule-based scores by shrinking extreme deltas, so ML stays a data-driven validation layer instead of overpowering the baseline.
+          A post-prediction calibration step aligns ML scores with rule-based
+          scores by shrinking extreme deltas, so ML stays a data-driven
+          validation layer instead of overpowering the baseline.
         </p>
 
         <h3>Saved Outputs</h3>
         <ul>
-          <li><code>models/ml_impact_scores.csv</code> (player-match ML scores)</li>
-          <li><code>models/ml_feature_importance.csv</code> (feature importance percentages)</li>
+          <li>
+            <code>models/ml_impact_scores.csv</code> (player-match ML scores)
+          </li>
+          <li>
+            <code>models/ml_feature_importance.csv</code> (feature importance
+            percentages)
+          </li>
         </ul>
 
         <h3>Model Explainability</h3>
         <p>
-          Feature importance is used to show what the model relies on most, so the ML layer remains interpretable during demos and reviews.
+          Feature importance is used to show what the model relies on most, so
+          the ML layer remains interpretable during demos and reviews.
         </p>
 
         <h2>10. Practical Applications</h2>
-        <p>ImpactMeter can support several real-world cricket analytics tasks:</p>
-        <p><strong>Player Form Tracking</strong><br />Identify players currently performing well using rolling impact scores.</p>
-        <p><strong>Auction &amp; Scouting Analytics</strong><br />Compare players using context-aware impact metrics instead of raw averages.</p>
-        <p><strong>Match Strategy Analysis</strong><br />Evaluate which players perform better under high-pressure situations.</p>
-        <p><strong>Role-Based Player Evaluation</strong><br />Assess batters, bowlers, and all-rounders using role-specific metrics.</p>
+        <p>
+          ImpactMeter can support several real-world cricket analytics tasks:
+        </p>
+        <p>
+          <strong>Player Form Tracking</strong><br />Identify players currently
+          performing well using rolling impact scores.
+        </p>
+        <p>
+          <strong>Auction &amp; Scouting Analytics</strong><br />Compare players
+          using context-aware impact metrics instead of raw averages.
+        </p>
+        <p>
+          <strong>Match Strategy Analysis</strong><br />Evaluate which players
+          perform better under high-pressure situations.
+        </p>
+        <p>
+          <strong>Role-Based Player Evaluation</strong><br />Assess batters,
+          bowlers, and all-rounders using role-specific metrics.
+        </p>
       </article>
     </main>
   </body>
