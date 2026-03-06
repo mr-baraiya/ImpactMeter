@@ -16,6 +16,14 @@ const breakClutch = document.getElementById("breakClutch");
 const breakFinal = document.getElementById("breakFinal");
 const trendPlayerLabel = document.getElementById("trendPlayerLabel");
 const trendTableBody = document.getElementById("trendTableBody");
+const pressureIndexValue = document.getElementById("pressureIndexValue");
+const pressureLevelBadge = document.getElementById("pressureLevelBadge");
+const pressureIndexBar = document.getElementById("pressureIndexBar");
+const highPressureShare = document.getElementById("highPressureShare");
+const clutchScoreValue = document.getElementById("clutchScoreValue");
+const clutchTag = document.getElementById("clutchTag");
+const clutchScoreBar = document.getElementById("clutchScoreBar");
+const clutchSummary = document.getElementById("clutchSummary");
 
 const phasePowerplay = document.getElementById("phasePowerplay");
 const phaseMiddle = document.getElementById("phaseMiddle");
@@ -491,6 +499,111 @@ function computePhaseContribution(player) {
   phaseDeathBar.style.width = `${d}%`;
 }
 
+function getPressureLevel(score) {
+  if (score >= 60) {
+    return {
+      label: "High",
+      classes: "bg-red-100 text-red-700"
+    };
+  }
+  if (score >= 30) {
+    return {
+      label: "Medium",
+      classes: "bg-amber-100 text-amber-700"
+    };
+  }
+  return {
+    label: "Low",
+    classes: "bg-emerald-100 text-emerald-700"
+  };
+}
+
+function getClutchTag(score) {
+  if (score >= 75) {
+    return {
+      label: "Elite",
+      classes: "bg-emerald-100 text-emerald-700"
+    };
+  }
+  if (score >= 55) {
+    return {
+      label: "Reliable",
+      classes: "bg-sky-100 text-sky-700"
+    };
+  }
+  if (score >= 35) {
+    return {
+      label: "Developing",
+      classes: "bg-amber-100 text-amber-700"
+    };
+  }
+  return {
+    label: "Low Sample",
+    classes: "bg-slate-100 text-slate-700"
+  };
+}
+
+function computePressureAndClutch(player) {
+  const rows = impactDataset.filter((r) => r.player === player);
+  if (rows.length === 0) {
+    pressureIndexValue.textContent = "0.0";
+    pressureLevelBadge.textContent = "Low";
+    pressureLevelBadge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700";
+    pressureIndexBar.style.width = "0%";
+    highPressureShare.textContent = "0.0%";
+
+    clutchScoreValue.textContent = "0.0";
+    clutchTag.textContent = "Low Sample";
+    clutchTag.className = "px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700";
+    clutchScoreBar.style.width = "0%";
+    clutchSummary.textContent = "No high-pressure summary available yet.";
+    return;
+  }
+
+  const pressureScores = rows.map((r) => Math.max(0, Math.min(100, toNumber(r.pressure_index, 0) * 100)));
+  const avgPressure = mean(pressureScores);
+  const highPressureRows = rows.filter((r) => toNumber(r.pressure_index, 0) * 100 >= 60);
+  const highShare = (highPressureRows.length / rows.length) * 100;
+
+  const pressureLevel = getPressureLevel(avgPressure);
+  pressureIndexValue.textContent = avgPressure.toFixed(1);
+  pressureLevelBadge.textContent = pressureLevel.label;
+  pressureLevelBadge.className = `px-3 py-1 rounded-full text-xs font-semibold ${pressureLevel.classes}`;
+  pressureIndexBar.style.width = `${avgPressure}%`;
+  highPressureShare.textContent = `${highShare.toFixed(1)}%`;
+
+  const highRuns = highPressureRows.reduce((acc, r) => acc + toNumber(r.runs_scored, 0), 0);
+  const highBalls = highPressureRows.reduce((acc, r) => acc + toNumber(r.balls_faced, 0), 0);
+  const highWickets = highPressureRows.reduce((acc, r) => acc + toNumber(r.wickets_taken, 0), 0);
+  const highStrikeRate = highBalls > 0 ? (highRuns * 100) / highBalls : 0;
+  const highImpact = mean(
+    highPressureRows.map(
+      (r) => 0.6 * toNumber(r.batter_impact_score, 0) + 0.4 * toNumber(r.bowler_impact_score, 0)
+    )
+  );
+
+  const srComponent = Math.min(100, highStrikeRate / 1.5);
+  const runsComponent = Math.min(100, highRuns * 2);
+  const wicketsComponent = Math.min(100, highWickets * 25);
+  const impactComponent = Math.max(0, Math.min(100, highImpact));
+
+  const clutchScore =
+    0.35 * srComponent +
+    0.25 * runsComponent +
+    0.2 * wicketsComponent +
+    0.2 * impactComponent;
+
+  const clutch = Math.max(0, Math.min(100, clutchScore));
+  const clutchMeta = getClutchTag(clutch);
+
+  clutchScoreValue.textContent = clutch.toFixed(1);
+  clutchTag.textContent = clutchMeta.label;
+  clutchTag.className = `px-3 py-1 rounded-full text-xs font-semibold ${clutchMeta.classes}`;
+  clutchScoreBar.style.width = `${clutch}%`;
+  clutchSummary.textContent =
+    `High-pressure runs: ${highRuns.toFixed(0)}, SR: ${highStrikeRate.toFixed(1)}, wickets: ${highWickets.toFixed(0)}`;
+}
+
 function renderRankingTable(rows) {
   const top = rows.slice(0, 10);
   rankingTableBody.innerHTML = top
@@ -528,6 +641,7 @@ function renderPlayer(player) {
   renderTrendTable(lastTen);
   computeBreakdown(player, latest.match_id, latestImpact);
   computePhaseContribution(player);
+  computePressureAndClutch(player);
 }
 
 function getPlayerRecentSeries(player, n = 10) {
