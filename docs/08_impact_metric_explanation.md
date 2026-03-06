@@ -1,4 +1,4 @@
-# ImpactMeter Logic & Methodology Document
+# ImpactMeter Technical Design & Methodology
 
 This document describes the current ImpactMeter scoring logic implemented in this repository.
 
@@ -31,6 +31,26 @@ Rolling last 10 innings
 ```
 
 ImpactMeter uses a hybrid approach: an interpretable rule-based baseline combined with a Random Forest ML layer to enhance score quality.
+
+## 2.1 System Architecture
+
+Data Layer:
+IPL ball-by-ball dataset
+
+Feature Engineering Layer:
+Context + pressure features
+
+Impact Modeling Layer:
+Rule-based scoring engine
+Random Forest ML predictor
+
+Analytics Layer:
+Player impact scoring
+Feature importance extraction
+
+Visualization Layer:
+Interactive dashboard
+Impact gauge, role-based stats, trend charts
 
 ## 3. Impact Score Calculation
 
@@ -162,3 +182,21 @@ Judges typically like seeing both scores close (for example, Rule `62` vs ML `66
 Demo line:
 
 "The ML score acts as a data-driven validation layer for the rule-based cricket knowledge model."
+
+The rule-based score remains the primary impact metric, while the ML layer provides additional analytical insight and helps validate the relative importance of cricket performance features.
+
+## 9. Practical Applications
+
+ImpactMeter can support several real-world cricket analytics tasks:
+
+Player Form Tracking:
+Identify players currently performing well using rolling impact scores.
+
+Auction & Scouting Analytics:
+Compare players using context-aware impact metrics instead of raw averages.
+
+Match Strategy Analysis:
+Evaluate which players perform better under high-pressure situations.
+
+Role-Based Player Evaluation:
+Assess batters, bowlers, and all-rounders using role-specific metrics.
