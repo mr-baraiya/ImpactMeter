@@ -1,4 +1,4 @@
-# ImpactMeter Logic Document (Current Rule-Based Version)
+# ImpactMeter Logic Document
 
 This document describes the current ImpactMeter scoring logic implemented in this repository.
 
