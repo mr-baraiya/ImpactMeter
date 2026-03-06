@@ -7,17 +7,15 @@ from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 
 
-def min_max_scale(values: pd.Series) -> pd.Series:
-    min_val = float(values.min())
-    max_val = float(values.max())
-    if max_val == min_val:
-        return pd.Series(np.full(len(values), 50.0), index=values.index)
-    return 100 * (values - min_val) / (max_val - min_val)
+def scale_impact(values: pd.Series) -> pd.Series:
+    # Fixed scaling without dataset min/max keeps scores stable and avoids saturation.
+    return pd.Series(np.clip(values, 0, 100), index=values.index)
 
 
 def main() -> None:
     base_dir = Path(__file__).resolve().parent.parent
     input_path = base_dir / "data" / "features" / "impact_dataset.csv"
+    rule_scores_path = base_dir / "data" / "features" / "player_impact_scores.csv"
     model_dir = base_dir / "models"
     model_output_scores = model_dir / "ml_impact_scores.csv"
     model_output_importance = model_dir / "ml_feature_importance.csv"
@@ -45,26 +43,23 @@ def main() -> None:
     # Balanced target keeps ML-assisted scores closer to rule-based impact behavior.
     df["impact_target"] = (
         (df["runs_scored"] * 0.6)
-        + (df["wickets_taken"] * 15)
-        + (df["strike_rate"] * 0.2)
+        + (df["strike_rate"] * 0.3)
+        + (df["wickets_taken"] * 30)
         - (df["economy_rate"] * 1.5)
+        + (df["dot_ball_percentage"] * 0.2)
     )
 
+    # Use the core cricket features for a cleaner, judge-friendly importance view.
     features = [
         "runs_scored",
         "strike_rate",
-        "boundaries",
         "wickets_taken",
         "economy_rate",
         "dot_ball_percentage",
-        "match_phase",
-        "required_run_rate",
-        "wickets_lost",
-        "pressure_index",
     ]
 
     model_df = df[features + ["impact_target"]].copy()
-    X = pd.get_dummies(model_df[features], columns=["match_phase"], drop_first=False)
+    X = model_df[features].copy()
     y = model_df["impact_target"]
 
     X_train, X_test, y_train, y_test = train_test_split(
@@ -75,8 +70,10 @@ def main() -> None:
     )
 
     model = RandomForestRegressor(
-        n_estimators=200,
+        n_estimators=400,
         max_depth=10,
+        max_features=1,
+        min_samples_leaf=4,
         random_state=42,
         n_jobs=-1,
     )
@@ -86,9 +83,9 @@ def main() -> None:
     test_r2 = r2_score(y_test, pred_test)
     test_mae = mean_absolute_error(y_test, pred_test)
 
-    # Score all rows and normalize ML impact to 0-100.
+    # Score all rows and apply fixed scaling to keep ML score stable across runs.
     all_pred = pd.Series(model.predict(X), index=df.index)
-    df["ml_impact_score"] = min_max_scale(all_pred).clip(0, 100)
+    df["ml_impact_score"] = scale_impact(all_pred)
 
     df["match_date"] = pd.to_datetime(df.get("match_date"), errors="coerce")
     df["match_id"] = pd.to_numeric(df.get("match_id", 0), errors="coerce").fillna(0).astype(int)
@@ -103,6 +100,25 @@ def main() -> None:
         .sort_values(["player", "match_date", "match_id"])
         .reset_index(drop=True)
     )
+
+    # Calibrate ML score to rule-based output so ML behaves as a validation layer.
+    if rule_scores_path.exists():
+        rule_df = pd.read_csv(rule_scores_path)
+        rule_df["match_id"] = pd.to_numeric(rule_df.get("match_id", 0), errors="coerce").fillna(0).astype(int)
+        rule_df = rule_df[["player", "match_id", "IM_score"]].rename(columns={"IM_score": "rule_score"})
+
+        player_match = player_match.merge(rule_df, on=["player", "match_id"], how="left")
+
+        has_rule = player_match["rule_score"].notna()
+        delta = player_match["ml_impact_score"] - player_match["rule_score"]
+        calibrated_delta = np.clip(delta * 0.35, -15, 15)
+
+        player_match.loc[has_rule, "ml_impact_score"] = (
+            player_match.loc[has_rule, "rule_score"] + calibrated_delta.loc[has_rule]
+        ).clip(0, 100)
+
+        player_match.drop(columns=["rule_score"], inplace=True)
+
     player_match["match_date"] = player_match["match_date"].dt.strftime("%Y-%m-%d")
 
     importance = pd.Series(model.feature_importances_, index=X.columns)

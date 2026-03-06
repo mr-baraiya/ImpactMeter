@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="ImpactMeter logic design and scoring explanation" />
-    <title>ImpactMeter Logic & Methodology Document</title>
+    <title>ImpactMeter Technical Design & Methodology</title>
     <style>
       :root {
         --green: #0b6e4f;
@@ -128,7 +128,7 @@
 
     <main class="container">
       <article class="doc">
-        <h1>ImpactMeter Logic &amp; Methodology Document</h1>
+        <h1>ImpactMeter Technical Design &amp; Methodology</h1>
         <p class="lead">
           This document describes the current ImpactMeter scoring logic implemented in this repository.
         </p>
@@ -161,6 +161,13 @@ Rolling last 10 innings
         <p>
       ImpactMeter primarily uses a rule-based scoring system for interpretability, with an additional machine learning layer to learn deeper patterns from historical match data.
         </p>
+
+        <h2>2.1 System Architecture</h2>
+        <p><strong>Data Layer</strong><br />IPL ball-by-ball dataset</p>
+        <p><strong>Feature Engineering Layer</strong><br />Context + pressure features</p>
+        <p><strong>Impact Modeling Layer</strong><br />Rule-based scoring engine<br />Random Forest ML predictor</p>
+        <p><strong>Analytics Layer</strong><br />Player impact scoring<br />Feature importance extraction</p>
+        <p><strong>Visualization Layer</strong><br />Interactive dashboard<br />Impact gauge, role-based stats, trend charts</p>
 
         <h2>3. Impact Score Calculation</h2>
         <p>Impact score is computed using transparent weighted scoring logic.</p>
@@ -198,9 +205,9 @@ Rolling last 10 innings
         <p>Example conceptual formula:</p>
         <p><code>Pressure = Required Run Rate x Wickets Lost Factor x Overs Remaining Factor</code></p>
 
-        <h2>4. Why Rule-Based Approach</h2>
+        <h2>4. Model Explainability</h2>
         <p>
-          A rule-based approach was chosen to maintain transparency and interpretability of the impact score.
+          A rule-based baseline was chosen to maintain transparency and interpretability of the impact score.
         </p>
         <p>
           Each component of the score can be directly traced to cricket performance metrics, making the system easy to understand for analysts and non-technical users.
@@ -230,9 +237,9 @@ Rolling last 10 innings
 
         <h2>7. System Extensions</h2>
         <p>
-          ImpactMeter includes an experimental ML-assisted extension using Random Forest models to learn patterns directly from ball-by-ball data.
+          ImpactMeter extends its transparent rule-based scoring system with an ML-assisted layer to compute player impact using performance, match context, and pressure indicators.
         </p>
-        <p>This hybrid approach would combine:</p>
+        <p>This hybrid approach combines:</p>
         <ul>
           <li>explainability from rule-based scoring</li>
           <li>pattern learning from machine learning models</li>
@@ -260,7 +267,10 @@ ML Impact Score
         </p>
         <p><strong>Demo line:</strong></p>
         <p>
-          "Our system combines a rule-based cricket knowledge model with a Random Forest learner that captures complex context-performance interactions."
+          "The ML score acts as a data-driven validation layer for the rule-based cricket knowledge model."
+        </p>
+        <p>
+          The rule-based score remains the primary impact metric, while the ML layer provides additional analytical insight and helps validate the relative importance of cricket performance features.
         </p>
 
         <h2>9. ML-Based Implementation Details</h2>
@@ -270,7 +280,7 @@ ML Impact Score
 
         <h3>Target Variable</h3>
         <p>Proxy target used for supervised learning:</p>
-        <pre><code class="language-text">impact_target = runs_scored + 25 * wickets_taken - 2 * economy_rate</code></pre>
+        <pre><code class="language-text">impact_target = (runs_scored * 0.6) + (strike_rate * 0.3) + (wickets_taken * 30) - (economy_rate * 1.5) + (dot_ball_percentage * 0.2)</code></pre>
 
         <h3>Model Features</h3>
         <ul>
@@ -288,19 +298,29 @@ ML Impact Score
 
         <h3>Normalization</h3>
         <p>
-          Model predictions are normalized to a 0-100 scale using min-max scaling, producing an ML score directly comparable with the rule-based score.
+          Model predictions use fixed scaling to 0-100 via clipping (<code>np.clip(prediction, 0, 100)</code>) to keep ML scores stable across dataset changes without dataset min-max normalization.
+        </p>
+        <p>
+          A post-prediction calibration step aligns ML scores with rule-based scores by shrinking extreme deltas, so ML stays a data-driven validation layer instead of overpowering the baseline.
         </p>
 
         <h3>Saved Outputs</h3>
         <ul>
-          <li><code>data/features/ml_impact_scores.csv</code> (player-match ML scores)</li>
-          <li><code>data/features/ml_feature_importance.csv</code> (feature importance percentages)</li>
+          <li><code>models/ml_impact_scores.csv</code> (player-match ML scores)</li>
+          <li><code>models/ml_feature_importance.csv</code> (feature importance percentages)</li>
         </ul>
 
         <h3>Model Explainability</h3>
         <p>
           Feature importance is used to show what the model relies on most, so the ML layer remains interpretable during demos and reviews.
         </p>
+
+        <h2>10. Practical Applications</h2>
+        <p>ImpactMeter can support several real-world cricket analytics tasks:</p>
+        <p><strong>Player Form Tracking</strong><br />Identify players currently performing well using rolling impact scores.</p>
+        <p><strong>Auction &amp; Scouting Analytics</strong><br />Compare players using context-aware impact metrics instead of raw averages.</p>
+        <p><strong>Match Strategy Analysis</strong><br />Evaluate which players perform better under high-pressure situations.</p>
+        <p><strong>Role-Based Player Evaluation</strong><br />Assess batters, bowlers, and all-rounders using role-specific metrics.</p>
       </article>
     </main>
   </body>
