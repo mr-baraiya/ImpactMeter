@@ -1,22 +1,37 @@
 # ImpactMeter
 
-ImpactMeter turns ball-by-ball IPL data into a single player impact score that is context-aware, pressure-aware, and recency-aware.
+ImpactMeter is a context-aware IPL player analytics system that converts ball-by-ball events into an interpretable `IM_score` (`0-100`) with pressure and clutch intelligence.
 
-## Problem Statement
+## Why This Project
 
-Traditional cricket metrics (runs, strike rate, wickets) do not fully capture match context. This project builds an interpretable impact metric using:
+Traditional metrics (runs, strike rate, wickets) miss match context. ImpactMeter models:
 
-- Performance contribution
-- Match context (phase)
-- Pressure context
-- Rolling last-10 innings with recency weighting
+- `Performance`: runs, strike rate, batter/bowler impact
+- `Context`: powerplay, middle overs, death overs
+- `Situation`: pressure-aware contribution and clutch behavior
+- `Recency`: rolling and weighted recent-match form
 
-Final output is a normalized 0-100 `IM_score` for player-level comparison.
+## Quick Judge View
+
+- Player Impact Score gauge (`IM_score`)
+- Explainable score breakdown
+- Last 10 match trend table + line chart
+- Pressure Index card (`Low/Medium/High`)
+- Clutch Performance card
+- Top impact leaderboard
+- Player-vs-player comparison
+
+## Dashboard Entry
+
+- Main UI: `index.html`
+- Client logic: `script.js`
 
 ## Project Structure
 
 ```text
 ImpactMeter/
+|-- index.html
+|-- script.js
 |-- data/
 |   |-- raw/ipl_json/
 |   |-- processed/ball_by_ball.csv
@@ -38,13 +53,8 @@ ImpactMeter/
 |-- scripts/
 |   |-- json_to_csv.py
 |   `-- run_impact_model.py
-|-- frontend/
 `-- README.md
 ```
-
-## Data Source
-
-- Cricsheet IPL JSON: https://cricsheet.org/
 
 ## Setup
 
@@ -58,122 +68,66 @@ pip install -r requirements.txt
 
 ## Pipeline
 
-### 1) Convert JSON to ball-by-ball CSV
+### 1. Convert raw JSON to ball-by-ball
 
 ```powershell
 D:/VS_CODES/Projects/ImpactMeter/venv/Scripts/python.exe scripts/json_to_csv.py
 ```
 
-Output:
+Output: `data/processed/ball_by_ball.csv`
 
-- `data/processed/ball_by_ball.csv`
+### 2. Build engineered features
 
-### 2) Build engineered features
+Run all cells in `notebooks/feature_engineering.ipynb`
 
-Run `notebooks/feature_engineering.ipynb` (all cells).
+Output: `data/features/impact_dataset.csv`
 
-Output:
-
-- `data/features/impact_dataset.csv`
-
-### 3) Run impact model (recommended script)
+### 3. Generate impact output (recommended)
 
 ```powershell
 D:/VS_CODES/Projects/ImpactMeter/venv/Scripts/python.exe scripts/run_impact_model.py
 ```
 
-Output:
+Output: `data/features/player_impact_scores.csv`
 
-- `data/features/player_impact_scores.csv`
+Current output columns include:
 
-## Model Highlights
+- `player`
+- `match_id`
+- `match_date`
+- `impact_score`
+- `rolling_IM`
+- `weighted_IM`
+- `pressure_score`
+- `clutch_score`
+- `IM_score`
 
-- Zero-safe strike rate handling
-- Pressure normalization
-- Missing impact values handled safely
-- Rolling last-10 innings impact (`rolling_IM`)
-- Recency-weighted impact (`weighted_IM`)
-- Final normalized score (`IM_score`) in 0-100 range
+## Docs Navigation
 
-## Architecture Diagram
+Use this section as the main redirect hub for judges:
 
-```text
-Cricsheet JSON
-	|
-	v
-JSON Parser (`scripts/json_to_csv.py`)
-	|
-	v
-Ball-by-Ball Dataset (`data/processed/ball_by_ball.csv`)
-	|
-	v
-Feature Engineering (`notebooks/feature_engineering.ipynb`)
-	|
-	v
-Impact Model (`notebooks/impact_model.ipynb` / `scripts/run_impact_model.py`)
-	|
-	v
-Rolling Last 10 + Recency Weighting
-	|
-	v
-Final Impact Score Dashboard (`frontend/`)
-```
+- Problem Definition: [`docs/01_problem_definition.md`](docs/01_problem_definition.md)
+- Dataset: [`docs/02_dataset.md`](docs/02_dataset.md)
+- Feature Engineering: [`docs/03_feature_engineering.md`](docs/03_feature_engineering.md)
+- Impact Model: [`docs/04_impact_model.md`](docs/04_impact_model.md)
+- Algorithm Pipeline: [`docs/05_algorithm_pipeline.md`](docs/05_algorithm_pipeline.md)
+- Results: [`docs/06_results.md`](docs/06_results.md)
+- Edge Cases: [`docs/07_edge_cases.md`](docs/07_edge_cases.md)
 
-## Model Validation
+## 1-Minute Demo Flow
 
-- Practical validation is done by checking if high impact scores align with known high-influence performances.
-- A lightweight quantitative check can be computed as correlation between player impact and team match outcomes for each season split.
-- Current project focus is interpretability-first scoring with reproducible outputs.
+1. Open `index.html` on local server.
+2. Select `V Kohli` (default).
+3. Show impact score and explanation panel.
+4. Show last 10 match trend chart + table.
+5. Show pressure level and clutch score cards.
+6. Compare 2 players and show leaderboard.
 
-## Sample Case Study
+## Data Source
 
-Example interpretation format used in demos:
+- Cricsheet IPL JSON: <https://cricsheet.org/>
 
-- Player: MS Dhoni
-- Situation: high required run rate in late overs
-- Observation: strong recent `IM_score` trend and elevated pressure contribution
-- Outcome: high ImpactMeter score due to clutch contribution under pressure
+## Notes
 
-## 1-Minute Demo Script
-
-1. Open dashboard and select a player.
-2. Show Impact Score gauge for instant understanding.
-3. Show last 10 innings trend.
-4. Show Why This Score breakdown panel.
-5. Compare two players in the comparison chart.
-6. Show ranking table and score distribution histogram.
-
-## Future Work
-
-- Include opponent strength adjustment.
-- Include venue and pitch difficulty.
-- Add explicit match-winning probability calibration.
-- Extend framework to ODI and Test formats.
-- Add richer clutch-factor modeling from ball-state transitions.
-
-## Notebook Workflow
-
-- `notebooks/feature_engineering.ipynb`: feature construction and dataset export
-- `notebooks/impact_model.ipynb`: impact computation, ranking, and trend plotting
-
-## Documentation
-
-Detailed writeups are in:
-
-- `docs/01_problem_definition.md`
-- `docs/02_dataset.md`
-- `docs/03_feature_engineering.md`
-- `docs/04_impact_model.md`
-- `docs/05_algorithm_pipeline.md`
-- `docs/06_results.md`
-- `docs/07_edge_cases.md`
-
-## Deliverables
-
-- Reproducible pipeline scripts and notebooks
-- Final player impact CSV output
-- Supporting documentation for methodology and edge cases
-
-## Note
-
-If notebook kernels run in isolated paths, use the script runner (`scripts/run_impact_model.py`) for reliable local execution.
+- If notebook kernel paths differ, prefer script execution for reproducible outputs.
+- This repository is optimized for interpretable analytics and presentation-ready judge demos.

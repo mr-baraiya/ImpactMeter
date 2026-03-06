@@ -3,6 +3,8 @@
 const playerSelect = document.getElementById("playerSelect");
 const playerDropdownList = document.getElementById("playerDropdownList");
 const statusMsg = document.getElementById("statusMsg");
+const pageLoader = document.getElementById("pageLoader");
+const pageLoaderText = document.getElementById("pageLoaderText");
 
 const impactScoreValue = document.getElementById("impactScoreValue");
 const gaugeFill = document.getElementById("gaugeFill");
@@ -205,6 +207,14 @@ function populatePlayerSelect(players, selectedPlayer) {
 function toNumber(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function setPageLoading(isLoading, message = "Loading dashboard data...") {
+  if (!pageLoader) return;
+  if (pageLoaderText) {
+    pageLoaderText.textContent = message;
+  }
+  pageLoader.classList.toggle("hidden", !isLoading);
 }
 
 function parseCSV(text) {
@@ -744,97 +754,104 @@ function renderDistribution(rankingRows) {
 }
 
 async function init() {
+  setPageLoading(true, "Loading dashboard data...");
   statusMsg.textContent = "Loading data...";
 
-  playerScores = await fetchCsvFromPaths([
-    "../data/features/player_impact_scores.csv",
-    "./data/features/player_impact_scores.csv",
-    "/data/features/player_impact_scores.csv"
-  ]);
+  try {
+    setPageLoading(true, "Loading player scores...");
+    playerScores = await fetchCsvFromPaths([
+      "../data/features/player_impact_scores.csv",
+      "./data/features/player_impact_scores.csv",
+      "/data/features/player_impact_scores.csv"
+    ]);
 
-  impactDataset = await fetchCsvFromPaths([
-    "../data/features/impact_dataset.csv",
-    "./data/features/impact_dataset.csv",
-    "/data/features/impact_dataset.csv"
-  ]);
+    setPageLoading(true, "Loading impact dataset...");
+    impactDataset = await fetchCsvFromPaths([
+      "../data/features/impact_dataset.csv",
+      "./data/features/impact_dataset.csv",
+      "/data/features/impact_dataset.csv"
+    ]);
 
-  if (playerScores.length === 0) {
-    statusMsg.textContent = "Could not load CSV files. Run a local server from project root (for example: python -m http.server 8000).";
-    return;
-  }
+    if (playerScores.length === 0) {
+      statusMsg.textContent = "Could not load CSV files. Run a local server from project root (for example: python -m http.server 8000).";
+      return;
+    }
 
-  allPlayers = [...new Set(playerScores.map((r) => r.player))].sort((a, b) =>
-    a.localeCompare(b)
-  );
+    allPlayers = [...new Set(playerScores.map((r) => r.player))].sort((a, b) =>
+      a.localeCompare(b)
+    );
 
-  populatePlayerSelect(allPlayers);
+    populatePlayerSelect(allPlayers);
 
-  const defaultPlayer =
-    allPlayers.find((p) => p.trim().toLowerCase() === "v kohli") ||
-    allPlayers.find((p) => p.trim().toLowerCase() === "virat kohli") ||
-    allPlayers.find((p) => p.toLowerCase().includes("kohli")) ||
-    allPlayers[0];
-  playerSelect.value = defaultPlayer;
+    const defaultPlayer =
+      allPlayers.find((p) => p.trim().toLowerCase() === "v kohli") ||
+      allPlayers.find((p) => p.trim().toLowerCase() === "virat kohli") ||
+      allPlayers.find((p) => p.toLowerCase().includes("kohli")) ||
+      allPlayers[0];
+    playerSelect.value = defaultPlayer;
 
-  const ranking = groupMeanByPlayer(playerScores);
-  renderRankingTable(ranking);
-  renderDistribution(ranking);
-  renderPlayer(defaultPlayer);
+    const ranking = groupMeanByPlayer(playerScores);
+    renderRankingTable(ranking);
+    renderDistribution(ranking);
+    renderPlayer(defaultPlayer);
 
-  compareASelect.value = defaultPlayer;
-  compareBSelect.value = ranking[0]?.player || allPlayers[0];
-  if (compareBSelect.value === compareASelect.value && allPlayers.length > 1) {
-    compareBSelect.value = allPlayers[1];
-  }
-  renderComparison();
+    compareASelect.value = defaultPlayer;
+    compareBSelect.value = ranking[0]?.player || allPlayers[0];
+    if (compareBSelect.value === compareASelect.value && allPlayers.length > 1) {
+      compareBSelect.value = allPlayers[1];
+    }
+    renderComparison();
 
-  const compareACombo = setupComboInput(compareASelect, compareADropdownList, renderComparison);
-  const compareBCombo = setupComboInput(compareBSelect, compareBDropdownList, renderComparison);
+    const compareACombo = setupComboInput(compareASelect, compareADropdownList, renderComparison);
+    const compareBCombo = setupComboInput(compareBSelect, compareBDropdownList, renderComparison);
 
-  playerSelect.addEventListener("focus", () => {
-    setDropdownItems(filterPlayers(playerSelect.value));
-  });
+    playerSelect.addEventListener("focus", () => {
+      setDropdownItems(filterPlayers(playerSelect.value));
+    });
 
-  playerSelect.addEventListener("input", () => {
-    setDropdownItems(filterPlayers(playerSelect.value));
-  });
+    playerSelect.addEventListener("input", () => {
+      setDropdownItems(filterPlayers(playerSelect.value));
+    });
 
-  playerSelect.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (visiblePlayers.length > 0) {
-        playerSelect.value = visiblePlayers[0];
+    playerSelect.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (visiblePlayers.length > 0) {
+          playerSelect.value = visiblePlayers[0];
+        }
+        pickPlayerFromInput();
       }
+      if (e.key === "Escape") {
+        closePlayerDropdown();
+      }
+    });
+
+    playerDropdownList.addEventListener("click", (e) => {
+      const target = e.target.closest("button[data-player]");
+      if (!target) return;
+      playerSelect.value = target.dataset.player;
       pickPlayerFromInput();
-    }
-    if (e.key === "Escape") {
-      closePlayerDropdown();
-    }
-  });
+    });
 
-  playerDropdownList.addEventListener("click", (e) => {
-    const target = e.target.closest("button[data-player]");
-    if (!target) return;
-    playerSelect.value = target.dataset.player;
-    pickPlayerFromInput();
-  });
+    document.addEventListener("click", (e) => {
+      const withinPicker = e.target === playerSelect || playerDropdownList.contains(e.target);
+      if (!withinPicker) {
+        closePlayerDropdown();
+      }
+    });
 
-  document.addEventListener("click", (e) => {
-    const withinPicker = e.target === playerSelect || playerDropdownList.contains(e.target);
-    if (!withinPicker) {
-      closePlayerDropdown();
-    }
-  });
+    compareASelect.addEventListener("blur", () => {
+      compareACombo.selectFromInput();
+    });
 
-  compareASelect.addEventListener("blur", () => {
-    compareACombo.selectFromInput();
-  });
+    compareBSelect.addEventListener("blur", () => {
+      compareBCombo.selectFromInput();
+    });
 
-  compareBSelect.addEventListener("blur", () => {
-    compareBCombo.selectFromInput();
-  });
-
-  statusMsg.textContent = `Loaded ${allPlayers.length} players.`;
+    statusMsg.textContent = `Loaded ${allPlayers.length} players.`;
+  } finally {
+    setPageLoading(false);
+  }
 }
 
 init();
