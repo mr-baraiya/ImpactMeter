@@ -103,6 +103,19 @@ Current output columns include:
 - `clutch_score`
 - `IM_score`
 
+### 4. ML-assisted impact extension (optional)
+
+```powershell
+D:/VS_CODES/Projects/ImpactMeter/venv/Scripts/python.exe scripts/run_ml_assisted_impact.py
+```
+
+Outputs:
+
+- `models/ml_impact_scores.csv`
+- `models/ml_feature_importance.csv`
+
+The code saves ML artifacts in the `models/` folder. This keeps rule-based impact as the interpretable baseline and adds a Random Forest assisted score for pattern learning.
+
 ## Docs Navigation
 
 Use this section as the main redirect hub for judges:

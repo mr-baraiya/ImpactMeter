@@ -9,6 +9,9 @@ const pageLoaderText = document.getElementById("pageLoaderText");
 const impactScoreValue = document.getElementById("impactScoreValue");
 const gaugeFill = document.getElementById("gaugeFill");
 const gaugeCanvas = document.getElementById("gaugeChart");
+const mlImpactValue = document.getElementById("mlImpactValue");
+const mlDeltaValue = document.getElementById("mlDeltaValue");
+const mlImpactBar = document.getElementById("mlImpactBar");
 
 const roleBadge = document.getElementById("roleBadge");
 const roleMetric1Label = document.getElementById("roleMetric1Label");
@@ -25,6 +28,7 @@ const roleFinal = document.getElementById("roleFinal");
 const roleMetricNote = document.getElementById("roleMetricNote");
 const trendPlayerLabel = document.getElementById("trendPlayerLabel");
 const trendTableBody = document.getElementById("trendTableBody");
+const trendModeToggle = document.getElementById("trendModeToggle");
 const pressureIndexValue = document.getElementById("pressureIndexValue");
 const pressureLevelBadge = document.getElementById("pressureLevelBadge");
 const pressureIndexBar = document.getElementById("pressureIndexBar");
@@ -42,6 +46,7 @@ const phaseMiddleBar = document.getElementById("phaseMiddleBar");
 const phaseDeathBar = document.getElementById("phaseDeathBar");
 
 const rankingTableBody = document.getElementById("rankingTableBody");
+const mlFeatureImportancePanel = document.getElementById("mlFeatureImportancePanel");
 
 const compareASelect = document.getElementById("compareASelect");
 const compareBSelect = document.getElementById("compareBSelect");
@@ -52,6 +57,8 @@ const compareBScore = document.getElementById("compareBScore");
 
 let playerScores = [];
 let impactDataset = [];
+let mlScores = [];
+let mlFeatureImportance = [];
 let allPlayers = [];
 let visiblePlayers = [];
 let trendChart = null;
@@ -331,6 +338,17 @@ function latestPlayerScore(playerRows) {
   return sorted[sorted.length - 1] || null;
 }
 
+function latestMlPlayerScore(playerRows) {
+  const sorted = [...playerRows].sort((a, b) => {
+    const da = new Date(a.match_date || "1970-01-01").getTime();
+    const db = new Date(b.match_date || "1970-01-01").getTime();
+    if (da !== db) return da - db;
+    return toNumber(a.match_id) - toNumber(b.match_id);
+  });
+
+  return sorted[sorted.length - 1] || null;
+}
+
 function updateGauge(score) {
   const clamped = Math.max(0, Math.min(100, score));
   impactScoreValue.textContent = clamped.toFixed(1);
@@ -367,10 +385,36 @@ function updateGauge(score) {
   }
 }
 
-function renderTrendTable(points) {
+function updateMlImpact(player, ruleScore) {
+  const rows = mlScores.filter((r) => r.player === player);
+  if (rows.length === 0) {
+    mlImpactValue.textContent = "-";
+    mlDeltaValue.textContent = "N/A";
+    mlImpactBar.style.width = "0%";
+    return;
+  }
+
+  const latest = latestMlPlayerScore(rows);
+  const mlScore = Math.max(0, Math.min(100, toNumber(latest.ml_impact_score, 0)));
+  const delta = mlScore - ruleScore;
+
+  mlImpactValue.textContent = mlScore.toFixed(1);
+  mlDeltaValue.textContent = `${delta >= 0 ? "+" : ""}${delta.toFixed(1)}`;
+  mlDeltaValue.className = delta >= 0 ? "font-semibold text-emerald-700" : "font-semibold text-rose-700";
+  mlImpactBar.style.width = `${mlScore}%`;
+}
+
+function extractTrendScore(point, useMlTrend) {
+  if (useMlTrend) {
+    return toNumber(point.ml_impact_score, 0);
+  }
+  return toNumber(point.IM_score ?? point.impact_score, 0);
+}
+
+function renderTrendTable(points, useMlTrend) {
   trendTableBody.innerHTML = points
     .map((point, idx) => {
-      const score = toNumber(point.IM_score ?? point.impact_score, 0);
+      const score = extractTrendScore(point, useMlTrend);
       return `
         <tr class="border-b border-slate-100">
           <td class="py-2 px-3">Match${idx + 1}</td>
@@ -380,9 +424,9 @@ function renderTrendTable(points) {
     .join("");
 }
 
-function buildTrend(points) {
+function buildTrend(points, useMlTrend) {
   const labels = points.map((_, idx) => `Match${idx + 1}`);
-  const data = points.map((p) => toNumber(p.IM_score ?? p.impact_score, 0));
+  const data = points.map((p) => extractTrendScore(p, useMlTrend));
 
   if (trendChart) {
     trendChart.destroy();
@@ -395,11 +439,11 @@ function buildTrend(points) {
       labels,
       datasets: [
         {
-          label: "Impact Score",
+          label: useMlTrend ? "ML Impact Score" : "Impact Score",
           data,
-          borderColor: "#0B6E4F",
-          backgroundColor: "rgba(11, 110, 79, 0.15)",
-          pointBackgroundColor: "#F39C12",
+          borderColor: useMlTrend ? "#0369A1" : "#0B6E4F",
+          backgroundColor: useMlTrend ? "rgba(3, 105, 161, 0.15)" : "rgba(11, 110, 79, 0.15)",
+          pointBackgroundColor: useMlTrend ? "#38BDF8" : "#F39C12",
           pointRadius: 3,
           borderWidth: 2,
           tension: 0.3,
@@ -698,6 +742,32 @@ function renderRankingTable(rows) {
     .join("");
 }
 
+function renderMlFeatureImportance() {
+  if (!mlFeatureImportancePanel) return;
+
+  const cleaned = mlFeatureImportance
+    .map((r) => ({
+      feature: String(r.feature || "").replaceAll("_", " "),
+      importancePct: toNumber(r.importance_pct, 0)
+    }))
+    .filter((r) => r.feature)
+    .slice(0, 5);
+
+  if (cleaned.length === 0) {
+    mlFeatureImportancePanel.innerHTML = '<p class="text-xs text-slate-500">Feature importance file not available.</p>';
+    return;
+  }
+
+  mlFeatureImportancePanel.innerHTML = cleaned
+    .map((item) => `
+      <div>
+        <div class="flex justify-between"><span>${escapeHtml(item.feature)}</span><span>${item.importancePct.toFixed(2)}%</span></div>
+        <div class="h-2 bg-slate-200 rounded"><div class="h-full bg-sky-500 rounded" style="width:${Math.max(0, Math.min(100, item.importancePct))}%"></div></div>
+      </div>
+    `)
+    .join("");
+}
+
 function renderPlayer(player) {
   const rows = playerScores
     .filter((r) => r.player === player)
@@ -712,13 +782,25 @@ function renderPlayer(player) {
 
   const latest = latestPlayerScore(rows);
   const latestImpact = toNumber(latest.IM_score ?? latest.impact_score, 0);
-  const lastTen = rows.slice(-10);
+  const useMlTrend = Boolean(trendModeToggle?.checked);
+  const mlRows = mlScores
+    .filter((r) => r.player === player)
+    .sort((a, b) => {
+      const da = new Date(a.match_date || "1970-01-01").getTime();
+      const db = new Date(b.match_date || "1970-01-01").getTime();
+      if (da !== db) return da - db;
+      return toNumber(a.match_id) - toNumber(b.match_id);
+    });
 
-  trendPlayerLabel.textContent = `Player: ${player}`;
+  const trendRows = useMlTrend && mlRows.length > 0 ? mlRows : rows;
+  const lastTen = trendRows.slice(-10);
+
+  trendPlayerLabel.textContent = `Player: ${player} | Trend: ${useMlTrend && mlRows.length > 0 ? "ML-Assisted" : "Rule-Based"}`;
 
   updateGauge(latestImpact);
-  buildTrend(lastTen);
-  renderTrendTable(lastTen);
+  updateMlImpact(player, latestImpact);
+  buildTrend(lastTen, useMlTrend && mlRows.length > 0);
+  renderTrendTable(lastTen, useMlTrend && mlRows.length > 0);
   computeRoleSnapshot(player, latestImpact);
   computePhaseContribution(player);
   computePressureAndClutch(player);
@@ -844,6 +926,22 @@ async function init() {
       "/data/features/impact_dataset.csv"
     ]);
 
+    setPageLoading(true, "Loading ML-assisted scores...");
+    mlScores = await fetchCsvFromPaths([
+      "./models/ml_impact_scores.csv",
+      "models/ml_impact_scores.csv",
+      "../models/ml_impact_scores.csv",
+      "/models/ml_impact_scores.csv"
+    ]);
+
+    setPageLoading(true, "Loading ML feature importance...");
+    mlFeatureImportance = await fetchCsvFromPaths([
+      "./models/ml_feature_importance.csv",
+      "models/ml_feature_importance.csv",
+      "../models/ml_feature_importance.csv",
+      "/models/ml_feature_importance.csv"
+    ]);
+
     if (playerScores.length === 0) {
       statusMsg.textContent = "Could not load CSV files. Run a local server from project root (for example: python -m http.server 8000).";
       return;
@@ -865,6 +963,7 @@ async function init() {
     const ranking = groupMeanByPlayer(playerScores);
     renderRankingTable(ranking);
     renderDistribution(ranking);
+    renderMlFeatureImportance();
     renderPlayer(defaultPlayer);
 
     compareASelect.value = defaultPlayer;
@@ -883,6 +982,10 @@ async function init() {
 
     playerSelect.addEventListener("input", () => {
       setDropdownItems(filterPlayers(playerSelect.value));
+    });
+
+    trendModeToggle?.addEventListener("change", () => {
+      renderPlayer(playerSelect.value);
     });
 
     playerSelect.addEventListener("keydown", (e) => {
