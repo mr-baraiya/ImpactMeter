@@ -9,6 +9,15 @@ const pageLoaderText = document.getElementById("pageLoaderText");
 const impactScoreValue = document.getElementById("impactScoreValue");
 const gaugeFill = document.getElementById("gaugeFill");
 const gaugeCanvas = document.getElementById("gaugeChart");
+const summaryRole = document.getElementById("summaryRole");
+const summaryMatches = document.getElementById("summaryMatches");
+const summaryAvgImpact = document.getElementById("summaryAvgImpact");
+const summaryTeam = document.getElementById("summaryTeam");
+const summaryRecentImpact = document.getElementById("summaryRecentImpact");
+const summaryHighPressure = document.getElementById("summaryHighPressure");
+const summaryPrimaryPhase = document.getElementById("summaryPrimaryPhase");
+const impactCategoryTitle = document.getElementById("impactCategoryTitle");
+const impactCategorySub = document.getElementById("impactCategorySub");
 const mlImpactValue = document.getElementById("mlImpactValue");
 const mlDeltaValue = document.getElementById("mlDeltaValue");
 const mlImpactBar = document.getElementById("mlImpactBar");
@@ -44,6 +53,11 @@ const phaseDeath = document.getElementById("phaseDeath");
 const phasePowerplayBar = document.getElementById("phasePowerplayBar");
 const phaseMiddleBar = document.getElementById("phaseMiddleBar");
 const phaseDeathBar = document.getElementById("phaseDeathBar");
+const phaseRolePowerplay = document.getElementById("phaseRolePowerplay");
+const phaseRoleMiddle = document.getElementById("phaseRoleMiddle");
+const phaseRoleDeath = document.getElementById("phaseRoleDeath");
+const phaseInsightPrimary = document.getElementById("phaseInsightPrimary");
+const phaseInsightText = document.getElementById("phaseInsightText");
 
 const rankingTableBody = document.getElementById("rankingTableBody");
 const mlFeatureImportancePanel = document.getElementById("mlFeatureImportancePanel");
@@ -65,6 +79,7 @@ let trendChart = null;
 let compareTrendChart = null;
 let distributionChart = null;
 let gaugeChart = null;
+let rankingRows = [];
 
 function escapeHtml(text) {
   return text
@@ -487,6 +502,106 @@ function inferPlayerRole(rows) {
   return "batter";
 }
 
+function formatRoleLabel(role) {
+  if (role === "allrounder") return "All-rounder";
+  if (role === "bowler") return "Bowler";
+  return "Batter";
+}
+
+function getImpactCategory(rankPct) {
+  if (rankPct <= 15) {
+    return {
+      title: "High Impact Player",
+      subtitle: `Top ${rankPct.toFixed(0)}%`
+    };
+  }
+
+  if (rankPct <= 40) {
+    return {
+      title: "Strong Impact Player",
+      subtitle: `Top ${rankPct.toFixed(0)}%`
+    };
+  }
+
+  if (rankPct <= 70) {
+    return {
+      title: "Emerging Impact Player",
+      subtitle: `Top ${rankPct.toFixed(0)}%`
+    };
+  }
+
+  return {
+    title: "Developing Impact Player",
+    subtitle: `Top ${rankPct.toFixed(0)}%`
+  };
+}
+
+function updatePlayerSummaryCards(player) {
+  const scoreRows = playerScores.filter((r) => r.player === player);
+  const featureRows = impactDataset.filter((r) => r.player === player);
+
+  if (scoreRows.length === 0) {
+    summaryTeam.textContent = "-";
+    summaryRole.textContent = "-";
+    summaryMatches.textContent = "-";
+    summaryAvgImpact.textContent = "-";
+    summaryRecentImpact.textContent = "-";
+    summaryHighPressure.textContent = "-";
+    summaryPrimaryPhase.textContent = "-";
+    impactCategoryTitle.textContent = "-";
+    impactCategorySub.textContent = "-";
+    return;
+  }
+
+  const role = inferPlayerRole(featureRows);
+  const avgImpact = mean(scoreRows.map((r) => toNumber(r.IM_score ?? r.impact_score, 0)));
+  const recentRows = [...scoreRows]
+    .sort((a, b) => {
+      const da = new Date(a.match_date || "1970-01-01").getTime();
+      const db = new Date(b.match_date || "1970-01-01").getTime();
+      if (da !== db) return da - db;
+      return toNumber(a.match_id) - toNumber(b.match_id);
+    })
+    .slice(-10);
+  const recentImpact = mean(recentRows.map((r) => toNumber(r.IM_score ?? r.impact_score, 0)));
+
+  const highPressureCount = featureRows.filter((r) => toNumber(r.pressure_index, 0) >= 0.6).length;
+  const highPressureSharePct = featureRows.length > 0 ? (highPressureCount / featureRows.length) * 100 : 0;
+
+  const teamFreq = new Map();
+  featureRows.forEach((r) => {
+    const t = String(r.team || "").trim();
+    if (!t) return;
+    teamFreq.set(t, (teamFreq.get(t) || 0) + 1);
+  });
+  const primaryTeam = [...teamFreq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "-";
+
+  const phaseFreq = new Map();
+  featureRows.forEach((r) => {
+    const p = String(r.phase || "").toLowerCase();
+    if (!p) return;
+    phaseFreq.set(p, (phaseFreq.get(p) || 0) + 1);
+  });
+  const phaseRaw = [...phaseFreq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "middle";
+  const phaseLabel = phaseRaw === "powerplay" ? "Powerplay" : phaseRaw === "death" ? "Death" : "Middle";
+
+  const rankIndex = rankingRows.findIndex((r) => r.player === player);
+  const rankPct = rankIndex >= 0 && rankingRows.length > 0
+    ? ((rankIndex + 1) / rankingRows.length) * 100
+    : 100;
+  const category = getImpactCategory(rankPct);
+
+  summaryTeam.textContent = primaryTeam;
+  summaryRole.textContent = formatRoleLabel(role);
+  summaryMatches.textContent = String(scoreRows.length);
+  summaryAvgImpact.textContent = avgImpact.toFixed(1);
+  summaryRecentImpact.textContent = recentImpact.toFixed(1);
+  summaryHighPressure.textContent = `${highPressureSharePct.toFixed(1)}%`;
+  summaryPrimaryPhase.textContent = phaseLabel;
+  impactCategoryTitle.textContent = category.title;
+  impactCategorySub.textContent = category.subtitle;
+}
+
 function computeRoleSnapshot(player, finalImpact) {
   const rows = impactDataset.filter((r) => r.player === player);
 
@@ -577,6 +692,18 @@ function computeRoleSnapshot(player, finalImpact) {
 function computePhaseContribution(player) {
   const rows = impactDataset.filter((r) => r.player === player);
 
+  function phaseRoleText(phaseKey, pct) {
+    const contribution = pct >= 45
+      ? "Primary contribution"
+      : pct >= 20
+        ? "Supporting contribution"
+        : "Limited contribution";
+
+    if (phaseKey === "powerplay") return `${contribution} as an aggressive starter`;
+    if (phaseKey === "middle") return `${contribution} as stabilizer`;
+    return `${contribution} as finisher`;
+  }
+
   if (rows.length === 0) {
     phasePowerplay.textContent = "0%";
     phaseMiddle.textContent = "0%";
@@ -584,6 +711,11 @@ function computePhaseContribution(player) {
     phasePowerplayBar.style.width = "0%";
     phaseMiddleBar.style.width = "0%";
     phaseDeathBar.style.width = "0%";
+    phaseRolePowerplay.textContent = "-";
+    phaseRoleMiddle.textContent = "-";
+    phaseRoleDeath.textContent = "-";
+    phaseInsightPrimary.textContent = "-";
+    phaseInsightText.textContent = "No phase insight available yet.";
     return;
   }
 
@@ -621,6 +753,30 @@ function computePhaseContribution(player) {
   phasePowerplayBar.style.width = `${p}%`;
   phaseMiddleBar.style.width = `${m}%`;
   phaseDeathBar.style.width = `${d}%`;
+
+  phaseRolePowerplay.textContent = phaseRoleText("powerplay", p);
+  phaseRoleMiddle.textContent = phaseRoleText("middle", m);
+  phaseRoleDeath.textContent = phaseRoleText("death", d);
+
+  const phaseStats = [
+    { key: "powerplay", label: "Powerplay", pct: p },
+    { key: "middle", label: "Middle Overs", pct: m },
+    { key: "death", label: "Death Overs", pct: d }
+  ];
+  phaseStats.sort((a, b) => b.pct - a.pct);
+  const primary = phaseStats[0];
+
+  let insight = "This phase profile suggests balanced contribution across innings situations.";
+  if (primary.key === "powerplay") {
+    insight = "This player contributes most in the powerplay, indicating an aggressive start that creates early momentum.";
+  } else if (primary.key === "middle") {
+    insight = "This player contributes most during the middle overs, indicating strong ability to stabilize and build innings momentum.";
+  } else if (primary.key === "death") {
+    insight = "This player contributes most in the death overs, showing strong finishing ability under end-phase pressure.";
+  }
+
+  phaseInsightPrimary.textContent = `${primary.label} (${primary.pct.toFixed(1)}%)`;
+  phaseInsightText.textContent = insight;
 }
 
 function getPressureLevel(score) {
@@ -798,6 +954,7 @@ function renderPlayer(player) {
   trendPlayerLabel.textContent = `Player: ${player} | Trend: ${useMlTrend && mlRows.length > 0 ? "ML-Assisted" : "Rule-Based"}`;
 
   updateGauge(latestImpact);
+  updatePlayerSummaryCards(player);
   updateMlImpact(player, latestImpact);
   buildTrend(lastTen, useMlTrend && mlRows.length > 0);
   renderTrendTable(lastTen, useMlTrend && mlRows.length > 0);
@@ -960,14 +1117,14 @@ async function init() {
       allPlayers[0];
     playerSelect.value = defaultPlayer;
 
-    const ranking = groupMeanByPlayer(playerScores);
-    renderRankingTable(ranking);
-    renderDistribution(ranking);
+    rankingRows = groupMeanByPlayer(playerScores);
+    renderRankingTable(rankingRows);
+    renderDistribution(rankingRows);
     renderMlFeatureImportance();
     renderPlayer(defaultPlayer);
 
     compareASelect.value = defaultPlayer;
-    compareBSelect.value = ranking[0]?.player || allPlayers[0];
+    compareBSelect.value = rankingRows[0]?.player || allPlayers[0];
     if (compareBSelect.value === compareASelect.value && allPlayers.length > 1) {
       compareBSelect.value = allPlayers[1];
     }

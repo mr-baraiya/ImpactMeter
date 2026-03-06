@@ -19,6 +19,7 @@
       }
     };
   </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-lightBg text-slate-800 min-h-screen">
@@ -54,21 +55,33 @@
     </header>
 
     <section id="section-player" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-5 mb-6 scroll-mt-24">
-      <label for="playerSelect" class="block text-sm font-semibold mb-2">Select Player</label>
-      <div class="relative w-full md:w-96">
-        <input
-          id="playerSelect"
-          type="text"
-          placeholder="Search and select player (e.g. Kohli)"
-          autocomplete="off"
-          class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cricketGreen"
-        />
-        <ul
-          id="playerDropdownList"
-          class="hidden absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg text-sm"
-        ></ul>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+        <div>
+          <label for="playerSelect" class="block text-sm font-semibold mb-2">Select Player</label>
+          <div class="relative w-full md:w-96 lg:w-full">
+            <input
+              id="playerSelect"
+              type="text"
+              placeholder="Search and select player (e.g. Kohli)"
+              autocomplete="off"
+              class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cricketGreen"
+            />
+            <ul
+              id="playerDropdownList"
+              class="hidden absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg text-sm"
+            ></ul>
+          </div>
+          <p id="statusMsg" class="text-xs text-slate-500 mt-2"></p>
+        </div>
+
+        <div class="bg-slate-50 rounded-xl border border-slate-200 p-4">
+          <h2 class="text-base font-semibold mb-3">Impact Category</h2>
+          <div class="flex items-center gap-3 flex-wrap">
+            <p id="impactCategoryTitle" class="text-lg font-bold text-cricketGreen">-</p>
+            <p id="impactCategorySub" class="text-sm text-slate-600">-</p>
+          </div>
+        </div>
       </div>
-      <p id="statusMsg" class="text-xs text-slate-500 mt-2"></p>
     </section>
 
     <section id="section-impact" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 scroll-mt-24">
@@ -111,20 +124,35 @@
         </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-lg font-semibold">Role-Based Snapshot</h2>
-          <span id="roleBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">Batter</span>
+      <div class="space-y-4">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+          <h2 class="text-base font-semibold mb-3">Player Summary</h2>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span class="text-slate-600">Team</span><span id="summaryTeam" class="font-semibold">-</span></div>
+            <div class="flex justify-between"><span class="text-slate-600">Role</span><span id="summaryRole" class="font-semibold">-</span></div>
+            <div class="flex justify-between"><span class="text-slate-600">Matches</span><span id="summaryMatches" class="font-semibold">-</span></div>
+            <div class="flex justify-between"><span class="text-slate-600">Avg Impact</span><span id="summaryAvgImpact" class="font-semibold text-cricketGreen">-</span></div>
+            <div class="flex justify-between"><span class="text-slate-600">Recent Form (Last 10)</span><span id="summaryRecentImpact" class="font-semibold">-</span></div>
+            <div class="flex justify-between"><span class="text-slate-600">High-Pressure Share</span><span id="summaryHighPressure" class="font-semibold">-</span></div>
+            <div class="flex justify-between"><span class="text-slate-600">Primary Phase</span><span id="summaryPrimaryPhase" class="font-semibold">-</span></div>
+          </div>
         </div>
-        <div class="space-y-2 text-sm">
-          <div class="flex justify-between"><span id="roleMetric1Label">Runs</span><span id="roleMetric1Value" class="font-semibold">-</span></div>
-          <div class="flex justify-between"><span id="roleMetric2Label">Strike Rate</span><span id="roleMetric2Value" class="font-semibold">-</span></div>
-          <div class="flex justify-between"><span id="roleMetric3Label">Boundaries</span><span id="roleMetric3Value" class="font-semibold">-</span></div>
-          <div class="flex justify-between"><span id="roleMetric4Label">Clutch Runs</span><span id="roleMetric4Value" class="font-semibold">-</span></div>
-          <div class="flex justify-between"><span id="roleMetric5Label">Batting Impact</span><span id="roleMetric5Value" class="font-semibold">-</span></div>
-          <hr class="my-2" />
-          <div class="flex justify-between text-base"><span class="font-semibold">Final Impact Score</span><span id="roleFinal" class="font-bold text-cricketGreen">-</span></div>
-          <p id="roleMetricNote" class="text-xs text-slate-500 pt-1">Role-specific metrics are calculated from available feature data.</p>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold">Role-Based Snapshot</h2>
+            <span id="roleBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">Batter</span>
+          </div>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between"><span id="roleMetric1Label">Runs</span><span id="roleMetric1Value" class="font-semibold">-</span></div>
+            <div class="flex justify-between"><span id="roleMetric2Label">Strike Rate</span><span id="roleMetric2Value" class="font-semibold">-</span></div>
+            <div class="flex justify-between"><span id="roleMetric3Label">Boundaries</span><span id="roleMetric3Value" class="font-semibold">-</span></div>
+            <div class="flex justify-between"><span id="roleMetric4Label">Clutch Runs</span><span id="roleMetric4Value" class="font-semibold">-</span></div>
+            <div class="flex justify-between"><span id="roleMetric5Label">Batting Impact</span><span id="roleMetric5Value" class="font-semibold">-</span></div>
+            <hr class="my-2" />
+            <div class="flex justify-between text-base"><span class="font-semibold">Final Impact Score</span><span id="roleFinal" class="font-bold text-cricketGreen">-</span></div>
+            <p id="roleMetricNote" class="text-xs text-slate-500 pt-1">Role-specific metrics are calculated from available feature data.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -204,6 +232,21 @@
             <div class="flex justify-between text-sm mb-1"><span>Death Overs</span><span id="phaseDeath">0%</span></div>
             <div class="h-2 bg-slate-200 rounded"><div id="phaseDeathBar" class="h-full bg-cricketOrange rounded" style="width:0%"></div></div>
           </div>
+        </div>
+
+        <div class="mt-5 pt-4 border-t border-slate-200">
+          <h3 class="text-sm font-semibold text-slate-700 mb-2">Phase Role Profile</h3>
+          <div class="space-y-1 text-sm text-slate-700">
+            <p><span class="font-medium">Powerplay:</span> <span id="phaseRolePowerplay">-</span></p>
+            <p><span class="font-medium">Middle Overs:</span> <span id="phaseRoleMiddle">-</span></p>
+            <p><span class="font-medium">Death Overs:</span> <span id="phaseRoleDeath">-</span></p>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-slate-200">
+          <h3 class="text-sm font-semibold text-slate-700 mb-1">Phase Insight</h3>
+          <p class="text-sm text-slate-700 mb-2">Primary Phase: <span id="phaseInsightPrimary" class="font-bold">-</span></p>
+          <p id="phaseInsightText" class="text-sm text-slate-600">-</p>
         </div>
       </div>
 
