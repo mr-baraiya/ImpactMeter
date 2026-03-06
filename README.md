@@ -14,18 +14,20 @@ Traditional metrics (runs, strike rate, wickets) miss match context. ImpactMeter
 ## Quick Judge View
 
 - Player Impact Score gauge (`IM_score`)
-- Explainable score breakdown
+- ML-assisted score and delta vs rule score
 - Last 10 match trend table + line chart
 - Pressure Index card (`Low/Medium/High`)
 - Clutch Performance card
-- Role-aware evaluation logic (see `docs/08_impact_metric_explanation.md`, Section 6)
+- Role-aware evaluation (batter/bowler/all-rounder)
 - Top impact leaderboard
 - Player-vs-player comparison
+- Random Forest feature-importance panel
 
-## Dashboard Entry
+## Requirements
 
-- Main UI: `index.html`
-- Client logic: `script.js`
+- Python `3.10+` (recommended)
+- `pip`
+- A local web server to open `index.html` (Python `http.server` is enough)
 
 ## Project Structure
 
@@ -33,12 +35,25 @@ Traditional metrics (runs, strike rate, wickets) miss match context. ImpactMeter
 ImpactMeter/
 |-- index.html
 |-- script.js
+|-- requirements.txt
 |-- data/
 |   |-- raw/ipl_json/
 |   |-- processed/ball_by_ball.csv
 |   `-- features/
 |       |-- impact_dataset.csv
 |       `-- player_impact_scores.csv
+|-- models/
+|   |-- ml_impact_scores.csv
+|   `-- ml_feature_importance.csv
+|-- scripts/
+|   |-- json_to_csv.py
+|   |-- run_impact_model.py
+|   `-- run_ml_assisted_impact.py
+|-- notebooks/
+|   |-- analysis.ipynb
+|   |-- feature_engineering.ipynb
+|   |-- impact_model.ipynb
+|   `-- ml_assisted_impact.ipynb
 |-- docs/
 |   |-- 01_problem_definition.md
 |   |-- 02_dataset.md
@@ -46,52 +61,77 @@ ImpactMeter/
 |   |-- 04_impact_model.md
 |   |-- 05_algorithm_pipeline.md
 |   |-- 06_results.md
-|   `-- 07_edge_cases.md
-|-- notebooks/
-|   |-- analysis.ipynb
-|   |-- feature_engineering.ipynb
-|   `-- impact_model.ipynb
-|-- scripts/
-|   |-- json_to_csv.py
-|   `-- run_impact_model.py
-`-- README.md
+|   |-- 07_edge_cases.md
+|   `-- 08_impact_metric_explanation.md
+`-- frontend/
+    `-- ImpactMeter_Logic_Design_Document.html
 ```
 
 ## Setup
 
-From project root:
+Run from project root:
 
 ```powershell
 python -m venv venv
 .\venv\Scripts\Activate
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-## Pipeline
+## Quickstart (End-to-End)
 
-### 1. Convert raw JSON to ball-by-ball
-
-```powershell
-D:/VS_CODES/Projects/ImpactMeter/venv/Scripts/python.exe scripts/json_to_csv.py
-```
-
-Output: `data/processed/ball_by_ball.csv`
-
-### 2. Build engineered features
-
-Run all cells in `notebooks/feature_engineering.ipynb`
-
-Output: `data/features/impact_dataset.csv`
-
-### 3. Generate impact output (recommended)
+If you want a complete rebuild and fresh outputs:
 
 ```powershell
-D:/VS_CODES/Projects/ImpactMeter/venv/Scripts/python.exe scripts/run_impact_model.py
+# 1) Raw JSON -> ball-by-ball CSV
+python scripts/json_to_csv.py
+
+# 2) Build feature dataset
+#    Run all cells in notebooks/feature_engineering.ipynb
+
+# 3) Rule-based impact outputs
+python scripts/run_impact_model.py
+
+# 4) ML-assisted outputs (saved to models/)
+python scripts/run_ml_assisted_impact.py
+
+# 5) Start dashboard
+python -m http.server 8000
 ```
 
-Output: `data/features/player_impact_scores.csv`
+Then open `http://localhost:8000`.
 
-Current output columns include:
+## Detailed Pipeline
+
+### 1. Convert raw IPL JSON
+
+```powershell
+python scripts/json_to_csv.py
+```
+
+Output:
+
+- `data/processed/ball_by_ball.csv`
+
+### 2. Generate engineered features
+
+Run all cells in `notebooks/feature_engineering.ipynb`.
+
+Output:
+
+- `data/features/impact_dataset.csv`
+
+### 3. Build rule-based impact scores
+
+```powershell
+python scripts/run_impact_model.py
+```
+
+Output:
+
+- `data/features/player_impact_scores.csv`
+
+Main columns:
 
 - `player`
 - `match_id`
@@ -103,10 +143,10 @@ Current output columns include:
 - `clutch_score`
 - `IM_score`
 
-### 4. ML-assisted impact extension (optional)
+### 4. Build ML-assisted scores and explainability
 
 ```powershell
-D:/VS_CODES/Projects/ImpactMeter/venv/Scripts/python.exe scripts/run_ml_assisted_impact.py
+python scripts/run_ml_assisted_impact.py
 ```
 
 Outputs:
@@ -114,11 +154,29 @@ Outputs:
 - `models/ml_impact_scores.csv`
 - `models/ml_feature_importance.csv`
 
-The code saves ML artifacts in the `models/` folder. This keeps rule-based impact as the interpretable baseline and adds a Random Forest assisted score for pattern learning.
+Notes:
+
+- ML uses fixed scaling (not dataset min-max) for stability.
+- ML outputs are calibrated against rule scores to keep ML as a validation layer.
+
+## Run The Dashboard
+
+```powershell
+python -m http.server 8000
+```
+
+Open:
+
+- `http://localhost:8000`
+
+Dashboard files:
+
+- UI: `index.html`
+- Logic: `script.js`
 
 ## Docs Navigation
 
-Use this section as the main redirect hub for judges:
+Use this as the judge/mentor navigation hub:
 
 - Problem Definition: [`docs/01_problem_definition.md`](docs/01_problem_definition.md)
 - Dataset: [`docs/02_dataset.md`](docs/02_dataset.md)
@@ -128,21 +186,24 @@ Use this section as the main redirect hub for judges:
 - Results: [`docs/06_results.md`](docs/06_results.md)
 - Edge Cases: [`docs/07_edge_cases.md`](docs/07_edge_cases.md)
 - Impact Metric Explanation: [`docs/08_impact_metric_explanation.md`](docs/08_impact_metric_explanation.md)
+- Technical Design (HTML): [`frontend/ImpactMeter_Logic_Design_Document.html`](frontend/ImpactMeter_Logic_Design_Document.html)
 
 ## 1-Minute Demo Flow
 
-1. Open `index.html` on local server.
-2. Select `V Kohli` (default).
-3. Show impact score and explanation panel.
-4. Show last 10 match trend chart + table.
-5. Show pressure level and clutch score cards.
-6. Compare 2 players and show leaderboard.
+1. Open dashboard and select `V Kohli` (default).
+2. Show `Impact Score`, `ML-Assisted Impact`, and delta.
+3. Show trend table + chart.
+4. Show pressure and clutch cards.
+5. Show role-based snapshot and phase contribution.
+6. Show feature-importance panel and compare two players.
+
+## Troubleshooting
+
+- If CSVs fail to load in browser, ensure you started a local server from repo root.
+- If ML files are missing, run `python scripts/run_ml_assisted_impact.py` again.
+- If rule scores are missing, run `python scripts/run_impact_model.py` again.
+- If notebook paths differ, use script-based pipeline commands for reproducibility.
 
 ## Data Source
 
 - Cricsheet IPL JSON: <https://cricsheet.org/>
-
-## Notes
-
-- If notebook kernel paths differ, prefer script execution for reproducible outputs.
-- This repository is optimized for interpretable analytics and presentation-ready judge demos.
