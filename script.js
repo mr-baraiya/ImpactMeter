@@ -10,12 +10,19 @@ const impactScoreValue = document.getElementById("impactScoreValue");
 const gaugeFill = document.getElementById("gaugeFill");
 const gaugeCanvas = document.getElementById("gaugeChart");
 
-const breakRuns = document.getElementById("breakRuns");
-const breakStrikeRate = document.getElementById("breakStrikeRate");
-const breakContext = document.getElementById("breakContext");
-const breakPressure = document.getElementById("breakPressure");
-const breakClutch = document.getElementById("breakClutch");
-const breakFinal = document.getElementById("breakFinal");
+const roleBadge = document.getElementById("roleBadge");
+const roleMetric1Label = document.getElementById("roleMetric1Label");
+const roleMetric1Value = document.getElementById("roleMetric1Value");
+const roleMetric2Label = document.getElementById("roleMetric2Label");
+const roleMetric2Value = document.getElementById("roleMetric2Value");
+const roleMetric3Label = document.getElementById("roleMetric3Label");
+const roleMetric3Value = document.getElementById("roleMetric3Value");
+const roleMetric4Label = document.getElementById("roleMetric4Label");
+const roleMetric4Value = document.getElementById("roleMetric4Value");
+const roleMetric5Label = document.getElementById("roleMetric5Label");
+const roleMetric5Value = document.getElementById("roleMetric5Value");
+const roleFinal = document.getElementById("roleFinal");
+const roleMetricNote = document.getElementById("roleMetricNote");
 const trendPlayerLabel = document.getElementById("trendPlayerLabel");
 const trendTableBody = document.getElementById("trendTableBody");
 const pressureIndexValue = document.getElementById("pressureIndexValue");
@@ -416,48 +423,111 @@ function buildTrend(points) {
   });
 }
 
-function computeBreakdown(player, matchId, finalImpact) {
-  const rows = impactDataset.filter(
-    (r) => r.player === player && String(r.match_id) === String(matchId)
-  );
+function inferPlayerRole(rows) {
+  const totalRuns = rows.reduce((acc, r) => acc + toNumber(r.runs_scored, 0), 0);
+  const totalWickets = rows.reduce((acc, r) => acc + toNumber(r.wickets_taken, 0), 0);
+
+  const battingEvents = rows.filter(
+    (r) => toNumber(r.balls_faced, 0) > 0 || toNumber(r.strike_rate, 0) > 0 || toNumber(r.runs_scored, 0) > 0
+  ).length;
+  const bowlingEvents = rows.filter(
+    (r) => toNumber(r.economy, 0) > 0 || toNumber(r.bowler_impact_score, 0) > 0 || toNumber(r.wickets_taken, 0) > 0
+  ).length;
+
+  // Rule-of-thumb thresholds for role assignment.
+  if (totalRuns > 300 && totalWickets < 5) return "batter";
+  if (totalWickets > 10 && totalRuns < 200) return "bowler";
+
+  if (battingEvents > 0 && bowlingEvents > 0) return "allrounder";
+  if (bowlingEvents > 0) return "bowler";
+  return "batter";
+}
+
+function computeRoleSnapshot(player, finalImpact) {
+  const rows = impactDataset.filter((r) => r.player === player);
 
   if (rows.length === 0) {
-    breakRuns.textContent = "-";
-    breakStrikeRate.textContent = "-";
-    breakContext.textContent = "-";
-    breakPressure.textContent = "-";
-    breakClutch.textContent = "-";
-    breakFinal.textContent = finalImpact.toFixed(1);
+    roleBadge.textContent = "Unknown";
+    roleBadge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700";
+    roleMetric1Value.textContent = "-";
+    roleMetric2Value.textContent = "-";
+    roleMetric3Value.textContent = "-";
+    roleMetric4Value.textContent = "-";
+    roleMetric5Value.textContent = "-";
+    roleFinal.textContent = finalImpact.toFixed(1);
     return;
   }
 
-  const phaseWeight = { powerplay: 1.1, middle: 1.0, death: 1.4 };
+  const role = inferPlayerRole(rows);
+  const highPressureRows = rows.filter((r) => toNumber(r.pressure_index, 0) >= 0.6);
 
-  const totals = rows.reduce(
-    (acc, r) => {
-      const runs = toNumber(r.runs_scored, 0);
-      const strikeRate = toNumber(r.strike_rate, 0);
-      const pressure = toNumber(r.pressure_index, 0.5);
-      const phase = (r.phase || "middle").toLowerCase();
-      const isDeath = phase === "death" ? 1.2 : 1.0;
+  const totalRuns = rows.reduce((acc, r) => acc + toNumber(r.runs_scored, 0), 0);
+  const totalBalls = rows.reduce((acc, r) => acc + toNumber(r.balls_faced, 0), 0);
+  const strikeRate = totalBalls > 0 ? (totalRuns * 100) / totalBalls : 0;
+  const totalWickets = rows.reduce((acc, r) => acc + toNumber(r.wickets_taken, 0), 0);
+  const economyRows = rows.filter((r) => toNumber(r.economy, 0) > 0);
+  const avgEconomy = economyRows.length > 0 ? mean(economyRows.map((r) => toNumber(r.economy, 0))) : 0;
 
-      acc.runs += runs * 0.6;
-      acc.strike += strikeRate * 0.2;
-      acc.context += (phaseWeight[phase] || 1.0);
-      acc.pressure += pressure;
-      acc.clutch += pressure * isDeath;
-      return acc;
-    },
-    { runs: 0, strike: 0, context: 0, pressure: 0, clutch: 0 }
-  );
+  const battingImpact = mean(rows.map((r) => toNumber(r.batter_impact_score, 0)));
+  const bowlingImpact = mean(rows.map((r) => toNumber(r.bowler_impact_score, 0)));
 
-  const n = rows.length;
-  breakRuns.textContent = (totals.runs / n).toFixed(2);
-  breakStrikeRate.textContent = (totals.strike / n).toFixed(2);
-  breakContext.textContent = (totals.context / n).toFixed(2);
-  breakPressure.textContent = ((totals.pressure / n) * 20).toFixed(2);
-  breakClutch.textContent = (totals.clutch / n).toFixed(2);
-  breakFinal.textContent = finalImpact.toFixed(1);
+  if (role === "bowler") {
+    const dotBallPct = Math.max(10, Math.min(75, 65 - avgEconomy * 5));
+    const deathRows = rows.filter((r) => (r.phase || "").toLowerCase() === "death");
+    const deathPerformance =
+      deathRows.length > 0
+        ? mean(deathRows.map((r) => toNumber(r.bowler_impact_score, 0)))
+        : 0;
+
+    roleBadge.textContent = "Bowler";
+    roleBadge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-sky-100 text-sky-700";
+    roleMetric1Label.textContent = "Wickets";
+    roleMetric1Value.textContent = totalWickets.toFixed(0);
+    roleMetric2Label.textContent = "Economy Rate";
+    roleMetric2Value.textContent = avgEconomy.toFixed(2);
+    roleMetric3Label.textContent = "Dot Ball %";
+    roleMetric3Value.textContent = `${dotBallPct.toFixed(1)}%`;
+    roleMetric4Label.textContent = "Death Overs Performance";
+    roleMetric4Value.textContent = deathPerformance.toFixed(1);
+    roleMetric5Label.textContent = "Bowling Impact";
+    roleMetric5Value.textContent = bowlingImpact.toFixed(1);
+    roleMetricNote.textContent = "Dot Ball % is estimated from economy due to aggregate feature granularity.";
+  } else if (role === "allrounder") {
+    const allrounderImpact = (0.55 * battingImpact) + (0.45 * bowlingImpact);
+
+    roleBadge.textContent = "All-rounder";
+    roleBadge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-700";
+    roleMetric1Label.textContent = "Runs";
+    roleMetric1Value.textContent = totalRuns.toFixed(0);
+    roleMetric2Label.textContent = "Strike Rate";
+    roleMetric2Value.textContent = strikeRate.toFixed(1);
+    roleMetric3Label.textContent = "Wickets";
+    roleMetric3Value.textContent = totalWickets.toFixed(0);
+    roleMetric4Label.textContent = "Economy Rate";
+    roleMetric4Value.textContent = avgEconomy.toFixed(2);
+    roleMetric5Label.textContent = "All-rounder Impact";
+    roleMetric5Value.textContent = allrounderImpact.toFixed(1);
+    roleMetricNote.textContent = "All-rounder impact blends batting and bowling contribution.";
+  } else {
+    const estimatedBoundaries = Math.round(totalRuns / 9);
+    const clutchRuns = highPressureRows.reduce((acc, r) => acc + toNumber(r.runs_scored, 0), 0);
+
+    roleBadge.textContent = "Batter";
+    roleBadge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700";
+    roleMetric1Label.textContent = "Runs";
+    roleMetric1Value.textContent = totalRuns.toFixed(0);
+    roleMetric2Label.textContent = "Strike Rate";
+    roleMetric2Value.textContent = strikeRate.toFixed(1);
+    roleMetric3Label.textContent = "Boundaries";
+    roleMetric3Value.textContent = estimatedBoundaries.toFixed(0);
+    roleMetric4Label.textContent = "Clutch Runs";
+    roleMetric4Value.textContent = clutchRuns.toFixed(0);
+    roleMetric5Label.textContent = "Batting Impact";
+    roleMetric5Value.textContent = battingImpact.toFixed(1);
+    roleMetricNote.textContent = "Boundaries are estimated from aggregate innings features.";
+  }
+
+  roleFinal.textContent = finalImpact.toFixed(1);
 }
 
 function computePhaseContribution(player) {
@@ -649,7 +719,7 @@ function renderPlayer(player) {
   updateGauge(latestImpact);
   buildTrend(lastTen);
   renderTrendTable(lastTen);
-  computeBreakdown(player, latest.match_id, latestImpact);
+  computeRoleSnapshot(player, latestImpact);
   computePhaseContribution(player);
   computePressureAndClutch(player);
 }

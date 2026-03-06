@@ -96,15 +96,19 @@
       </div>
 
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-        <h2 class="text-lg font-semibold mb-3">Why This Score?</h2>
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-semibold">Role-Based Snapshot</h2>
+          <span id="roleBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">Batter</span>
+        </div>
         <div class="space-y-2 text-sm">
-          <div class="flex justify-between"><span>Runs Contribution</span><span id="breakRuns" class="font-semibold">-</span></div>
-          <div class="flex justify-between"><span>Strike Rate Influence</span><span id="breakStrikeRate" class="font-semibold">-</span></div>
-          <div class="flex justify-between"><span>Match Phase Context</span><span id="breakContext" class="font-semibold">-</span></div>
-          <div class="flex justify-between"><span>Pressure Influence</span><span id="breakPressure" class="font-semibold">-</span></div>
-          <div class="flex justify-between"><span>Clutch Factor</span><span id="breakClutch" class="font-semibold">-</span></div>
+          <div class="flex justify-between"><span id="roleMetric1Label">Runs</span><span id="roleMetric1Value" class="font-semibold">-</span></div>
+          <div class="flex justify-between"><span id="roleMetric2Label">Strike Rate</span><span id="roleMetric2Value" class="font-semibold">-</span></div>
+          <div class="flex justify-between"><span id="roleMetric3Label">Boundaries</span><span id="roleMetric3Value" class="font-semibold">-</span></div>
+          <div class="flex justify-between"><span id="roleMetric4Label">Clutch Runs</span><span id="roleMetric4Value" class="font-semibold">-</span></div>
+          <div class="flex justify-between"><span id="roleMetric5Label">Batting Impact</span><span id="roleMetric5Value" class="font-semibold">-</span></div>
           <hr class="my-2" />
-          <div class="flex justify-between text-base"><span class="font-semibold">Final Impact Score</span><span id="breakFinal" class="font-bold text-cricketGreen">-</span></div>
+          <div class="flex justify-between text-base"><span class="font-semibold">Final Impact Score</span><span id="roleFinal" class="font-bold text-cricketGreen">-</span></div>
+          <p id="roleMetricNote" class="text-xs text-slate-500 pt-1">Role-specific metrics are calculated from available feature data.</p>
         </div>
       </div>
     </section>
