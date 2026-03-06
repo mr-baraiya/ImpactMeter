@@ -18,6 +18,7 @@ Traditional metrics (runs, strike rate, wickets) miss match context. ImpactMeter
 - Last 10 match trend table + line chart
 - Pressure Index card (`Low/Medium/High`)
 - Clutch Performance card
+- Role-aware evaluation logic (see `docs/08_impact_metric_explanation.md`, Section 6)
 - Top impact leaderboard
 - Player-vs-player comparison
 
@@ -113,6 +114,7 @@ Use this section as the main redirect hub for judges:
 - Algorithm Pipeline: [`docs/05_algorithm_pipeline.md`](docs/05_algorithm_pipeline.md)
 - Results: [`docs/06_results.md`](docs/06_results.md)
 - Edge Cases: [`docs/07_edge_cases.md`](docs/07_edge_cases.md)
+- Impact Metric Explanation: [`docs/08_impact_metric_explanation.md`](docs/08_impact_metric_explanation.md)
 
 ## 1-Minute Demo Flow
 
