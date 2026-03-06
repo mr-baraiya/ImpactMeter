@@ -178,6 +178,9 @@ Rolling last 10 innings
 </code></pre>
         <p>Then normalize to a common scale:</p>
         <p>Impact Score is normalized to a 0-100 scale using min-max scaling.</p>
+        <p>
+          For hackathon evaluation, the final score is centered so <strong>50 represents a neutral baseline</strong>, computed on a rolling last 10 innings window with recency weighting, and updated after each completed match (batch update, not real-time).
+        </p>
         <p>Where:</p>
 
         <h3>Performance Score</h3>

@@ -67,6 +67,8 @@ Then normalize to a common scale:
 
 Impact Score is normalized to a 0-100 scale using min-max scaling.
 
+For hackathon requirements, the final IM score is centered so 50 is a neutral baseline, computed using rolling last 10 innings with explicit recency weighting, and refreshed after each completed match (batch update, not real-time).
+
 Where:
 
 ### Performance Score

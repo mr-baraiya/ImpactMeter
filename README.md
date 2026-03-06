@@ -23,6 +23,14 @@ Traditional metrics (runs, strike rate, wickets) miss match context. ImpactMeter
 - Player-vs-player comparison
 - Random Forest feature-importance panel
 
+## Hackathon Metric Requirements
+
+- `0-100 normalization`: final `IM_score` is normalized to a `0-100` scale.
+- `Neutral baseline at 50`: `IM_score` is centered so `50` represents neutral/average impact.
+- `Rolling last 10 innings`: rolling metrics are computed with a 10-match window.
+- `Updated after every match`: score updates are generated per match in the batch pipeline (not ball-by-ball real-time).
+- `Recency influence`: recent innings are emphasized via rolling average + weighted last-10 scoring.
+
 ## Requirements
 
 - Python `3.10+` (recommended)

@@ -17,6 +17,21 @@ def compute_weighted_last_n(series: pd.Series, window: int = 10) -> pd.Series:
     return pd.Series(result, index=series.index)
 
 
+def normalize_centered_50(series: pd.Series) -> pd.Series:
+    values = pd.to_numeric(series, errors="coerce").fillna(0)
+    midpoint = float(values.mean())
+    lower_span = midpoint - float(values.min())
+    upper_span = float(values.max()) - midpoint
+    span = max(lower_span, upper_span)
+
+    if span == 0:
+        return pd.Series(50.0, index=values.index)
+
+    # Center final score so 50 is neutral and keep output on a 0-100 scale.
+    normalized = 50 + ((values - midpoint) * 50 / span)
+    return normalized.clip(0, 100)
+
+
 def match_level_metrics(group: pd.DataFrame) -> pd.Series:
     pressure = (group["pressure_index"] * 100).clip(0, 100)
     pressure_score = pressure.mean()
@@ -116,13 +131,13 @@ def main() -> None:
         .transform(lambda s: compute_weighted_last_n(s, window=10))
     )
 
-    player_match["IM_score"] = (
+    player_match["IM_raw"] = (
         0.4 * player_match["impact_score"]
         + 0.3 * player_match["rolling_IM"]
         + 0.2 * player_match["weighted_IM"]
         + 0.1 * player_match["clutch_score"]
     )
-    player_match["IM_score"] = player_match["IM_score"].clip(0, 100)
+    player_match["IM_score"] = normalize_centered_50(player_match["IM_raw"])
 
     player_match["match_date"] = player_match["match_date"].dt.strftime("%Y-%m-%d")
     player_match = player_match[
