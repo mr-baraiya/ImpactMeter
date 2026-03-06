@@ -760,15 +760,17 @@ async function init() {
   try {
     setPageLoading(true, "Loading player scores...");
     playerScores = await fetchCsvFromPaths([
-      "../data/features/player_impact_scores.csv",
       "./data/features/player_impact_scores.csv",
+      "data/features/player_impact_scores.csv",
+      "../data/features/player_impact_scores.csv",
       "/data/features/player_impact_scores.csv"
     ]);
 
     setPageLoading(true, "Loading impact dataset...");
     impactDataset = await fetchCsvFromPaths([
-      "../data/features/impact_dataset.csv",
       "./data/features/impact_dataset.csv",
+      "data/features/impact_dataset.csv",
+      "../data/features/impact_dataset.csv",
       "/data/features/impact_dataset.csv"
     ]);
 
