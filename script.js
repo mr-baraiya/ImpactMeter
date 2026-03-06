@@ -1,6 +1,7 @@
 /* global Chart */
 
 const playerSelect = document.getElementById("playerSelect");
+const playerDropdownList = document.getElementById("playerDropdownList");
 const statusMsg = document.getElementById("statusMsg");
 
 const impactScoreValue = document.getElementById("impactScoreValue");
@@ -13,6 +14,8 @@ const breakContext = document.getElementById("breakContext");
 const breakPressure = document.getElementById("breakPressure");
 const breakClutch = document.getElementById("breakClutch");
 const breakFinal = document.getElementById("breakFinal");
+const trendPlayerLabel = document.getElementById("trendPlayerLabel");
+const trendTableBody = document.getElementById("trendTableBody");
 
 const phasePowerplay = document.getElementById("phasePowerplay");
 const phaseMiddle = document.getElementById("phaseMiddle");
@@ -25,15 +28,171 @@ const rankingTableBody = document.getElementById("rankingTableBody");
 
 const compareASelect = document.getElementById("compareASelect");
 const compareBSelect = document.getElementById("compareBSelect");
+const compareADropdownList = document.getElementById("compareADropdownList");
+const compareBDropdownList = document.getElementById("compareBDropdownList");
 const compareAScore = document.getElementById("compareAScore");
 const compareBScore = document.getElementById("compareBScore");
 
 let playerScores = [];
 let impactDataset = [];
+let allPlayers = [];
+let visiblePlayers = [];
 let trendChart = null;
 let compareTrendChart = null;
 let distributionChart = null;
 let gaugeChart = null;
+
+function escapeHtml(text) {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function setDropdownItems(players) {
+  visiblePlayers = players;
+
+  if (players.length === 0) {
+    playerDropdownList.innerHTML = '<li class="px-3 py-2 text-slate-500">No players found</li>';
+    playerDropdownList.classList.remove("hidden");
+    return;
+  }
+
+  playerDropdownList.innerHTML = players
+    .map(
+      (p) =>
+        `<li><button type="button" class="w-full text-left px-3 py-2 hover:bg-slate-100" data-player="${escapeHtml(p)}">${escapeHtml(p)}</button></li>`
+    )
+    .join("");
+
+  playerDropdownList.classList.remove("hidden");
+}
+
+function closePlayerDropdown() {
+  playerDropdownList.classList.add("hidden");
+}
+
+function filterPlayers(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return allPlayers;
+  return allPlayers.filter((p) => p.toLowerCase().includes(q));
+}
+
+function setupComboInput(inputEl, listEl, onSelect) {
+  let visible = [];
+
+  function close() {
+    listEl.classList.add("hidden");
+  }
+
+  function setItems(players) {
+    visible = players;
+
+    if (players.length === 0) {
+      listEl.innerHTML = '<li class="px-3 py-2 text-slate-500">No players found</li>';
+      listEl.classList.remove("hidden");
+      return;
+    }
+
+    listEl.innerHTML = players
+      .map(
+        (p) =>
+          `<li><button type="button" class="w-full text-left px-3 py-2 hover:bg-slate-100" data-player="${escapeHtml(p)}">${escapeHtml(p)}</button></li>`
+      )
+      .join("");
+
+    listEl.classList.remove("hidden");
+  }
+
+  function selectFromInput() {
+    const typed = inputEl.value.trim().toLowerCase();
+    if (!typed) return;
+
+    const exact = allPlayers.find((p) => p.toLowerCase() === typed);
+    const partial = allPlayers.find((p) => p.toLowerCase().includes(typed));
+    const selected = exact || partial;
+    if (!selected) return;
+
+    inputEl.value = selected;
+    close();
+    onSelect(selected);
+  }
+
+  inputEl.addEventListener("focus", () => {
+    setItems(filterPlayers(inputEl.value));
+  });
+
+  inputEl.addEventListener("input", () => {
+    setItems(filterPlayers(inputEl.value));
+  });
+
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (visible.length > 0) {
+        inputEl.value = visible[0];
+      }
+      selectFromInput();
+    }
+    if (e.key === "Escape") {
+      close();
+    }
+  });
+
+  listEl.addEventListener("click", (e) => {
+    const target = e.target.closest("button[data-player]");
+    if (!target) return;
+    inputEl.value = target.dataset.player;
+    close();
+    onSelect(target.dataset.player);
+  });
+
+  document.addEventListener("click", (e) => {
+    const withinPicker = e.target === inputEl || listEl.contains(e.target);
+    if (!withinPicker) {
+      close();
+    }
+  });
+
+  return {
+    close,
+    selectFromInput
+  };
+}
+
+function pickPlayerFromInput() {
+  const typed = playerSelect.value.trim().toLowerCase();
+  if (!typed) return;
+
+  const exact = allPlayers.find((p) => p.toLowerCase() === typed);
+  const partial = allPlayers.find((p) => p.toLowerCase().includes(typed));
+  const selected = exact || partial;
+
+  if (!selected) {
+    statusMsg.textContent = `No player found for "${playerSelect.value.trim()}".`;
+    return;
+  }
+
+  playerSelect.value = selected;
+  renderPlayer(selected);
+  closePlayerDropdown();
+  statusMsg.textContent = `Loaded ${allPlayers.length} players.`;
+}
+
+function populatePlayerSelect(players, selectedPlayer) {
+  if (players.length === 0) {
+    playerSelect.value = "";
+    return "";
+  }
+
+  visiblePlayers = players;
+
+  const nextSelected = players.includes(selectedPlayer) ? selectedPlayer : players[0];
+  playerSelect.value = nextSelected;
+  return nextSelected;
+}
 
 function toNumber(value, fallback = 0) {
   const n = Number(value);
@@ -183,8 +342,21 @@ function updateGauge(score) {
   }
 }
 
+function renderTrendTable(points) {
+  trendTableBody.innerHTML = points
+    .map((point, idx) => {
+      const score = toNumber(point.IM_score ?? point.impact_score, 0);
+      return `
+        <tr class="border-b border-slate-100">
+          <td class="py-2 px-3">Match${idx + 1}</td>
+          <td class="py-2 px-3 text-right font-semibold">${score.toFixed(1)}</td>
+        </tr>`;
+    })
+    .join("");
+}
+
 function buildTrend(points) {
-  const labels = points.map((_, idx) => `${idx + 1}`);
+  const labels = points.map((_, idx) => `Match${idx + 1}`);
   const data = points.map((p) => toNumber(p.IM_score ?? p.impact_score, 0));
 
   if (trendChart) {
@@ -347,9 +519,13 @@ function renderPlayer(player) {
 
   const latest = latestPlayerScore(rows);
   const latestImpact = toNumber(latest.IM_score ?? latest.impact_score, 0);
+  const lastTen = rows.slice(-10);
+
+  trendPlayerLabel.textContent = `Player: ${player}`;
 
   updateGauge(latestImpact);
-  buildTrend(rows.slice(-10));
+  buildTrend(lastTen);
+  renderTrendTable(lastTen);
   computeBreakdown(player, latest.match_id, latestImpact);
   computePhaseContribution(player);
 }
@@ -473,23 +649,17 @@ async function init() {
     return;
   }
 
-  const players = [...new Set(playerScores.map((r) => r.player))].sort((a, b) =>
+  allPlayers = [...new Set(playerScores.map((r) => r.player))].sort((a, b) =>
     a.localeCompare(b)
   );
 
-  playerSelect.innerHTML = players
-    .map((p) => `<option value="${p}">${p}</option>`)
-    .join("");
+  populatePlayerSelect(allPlayers);
 
-  compareASelect.innerHTML = players
-    .map((p) => `<option value="${p}">${p}</option>`)
-    .join("");
-
-  compareBSelect.innerHTML = players
-    .map((p) => `<option value="${p}">${p}</option>`)
-    .join("");
-
-  const defaultPlayer = players.find((p) => p.toLowerCase().includes("kohli")) || players[0];
+  const defaultPlayer =
+    allPlayers.find((p) => p.trim().toLowerCase() === "v kohli") ||
+    allPlayers.find((p) => p.trim().toLowerCase() === "virat kohli") ||
+    allPlayers.find((p) => p.toLowerCase().includes("kohli")) ||
+    allPlayers[0];
   playerSelect.value = defaultPlayer;
 
   const ranking = groupMeanByPlayer(playerScores);
@@ -498,20 +668,59 @@ async function init() {
   renderPlayer(defaultPlayer);
 
   compareASelect.value = defaultPlayer;
-  compareBSelect.value = ranking[0]?.player || players[0];
-  if (compareBSelect.value === compareASelect.value && players.length > 1) {
-    compareBSelect.value = players[1];
+  compareBSelect.value = ranking[0]?.player || allPlayers[0];
+  if (compareBSelect.value === compareASelect.value && allPlayers.length > 1) {
+    compareBSelect.value = allPlayers[1];
   }
   renderComparison();
 
-  playerSelect.addEventListener("change", (e) => {
-    renderPlayer(e.target.value);
+  const compareACombo = setupComboInput(compareASelect, compareADropdownList, renderComparison);
+  const compareBCombo = setupComboInput(compareBSelect, compareBDropdownList, renderComparison);
+
+  playerSelect.addEventListener("focus", () => {
+    setDropdownItems(filterPlayers(playerSelect.value));
   });
 
-  compareASelect.addEventListener("change", renderComparison);
-  compareBSelect.addEventListener("change", renderComparison);
+  playerSelect.addEventListener("input", () => {
+    setDropdownItems(filterPlayers(playerSelect.value));
+  });
 
-  statusMsg.textContent = `Loaded ${players.length} players.`;
+  playerSelect.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (visiblePlayers.length > 0) {
+        playerSelect.value = visiblePlayers[0];
+      }
+      pickPlayerFromInput();
+    }
+    if (e.key === "Escape") {
+      closePlayerDropdown();
+    }
+  });
+
+  playerDropdownList.addEventListener("click", (e) => {
+    const target = e.target.closest("button[data-player]");
+    if (!target) return;
+    playerSelect.value = target.dataset.player;
+    pickPlayerFromInput();
+  });
+
+  document.addEventListener("click", (e) => {
+    const withinPicker = e.target === playerSelect || playerDropdownList.contains(e.target);
+    if (!withinPicker) {
+      closePlayerDropdown();
+    }
+  });
+
+  compareASelect.addEventListener("blur", () => {
+    compareACombo.selectFromInput();
+  });
+
+  compareBSelect.addEventListener("blur", () => {
+    compareBCombo.selectFromInput();
+  });
+
+  statusMsg.textContent = `Loaded ${allPlayers.length} players.`;
 }
 
 init();

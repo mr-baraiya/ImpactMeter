@@ -30,7 +30,19 @@
 
     <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-5 mb-6">
       <label for="playerSelect" class="block text-sm font-semibold mb-2">Select Player</label>
-      <select id="playerSelect" class="w-full md:w-96 border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cricketGreen"></select>
+      <div class="relative w-full md:w-96">
+        <input
+          id="playerSelect"
+          type="text"
+          placeholder="Search and select player (e.g. Kohli)"
+          autocomplete="off"
+          class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cricketGreen"
+        />
+        <ul
+          id="playerDropdownList"
+          class="hidden absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg text-sm"
+        ></ul>
+      </div>
       <p id="statusMsg" class="text-xs text-slate-500 mt-2"></p>
     </section>
 
@@ -74,9 +86,23 @@
     </section>
 
     <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-6">
-      <h2 class="text-lg font-semibold mb-3">Impact Trend (Last 10 Innings)</h2>
-      <div class="h-72 md:h-80">
-        <canvas id="trendChart"></canvas>
+      <h2 class="text-lg font-semibold mb-1">Impact Trend (Last 10 Matches)</h2>
+      <p id="trendPlayerLabel" class="text-sm text-slate-600 mb-4">Player: -</p>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="lg:col-span-2 h-72 md:h-80">
+          <canvas id="trendChart"></canvas>
+        </div>
+        <div class="border border-slate-200 rounded-lg overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left bg-slate-50 border-b border-slate-200">
+                <th class="py-2 px-3">Match</th>
+                <th class="py-2 px-3 text-right">Impact</th>
+              </tr>
+            </thead>
+            <tbody id="trendTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -122,11 +148,35 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
           <div>
             <label for="compareASelect" class="block text-xs font-semibold mb-1">Player A</label>
-            <select id="compareASelect" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></select>
+            <div class="relative">
+              <input
+                id="compareASelect"
+                type="text"
+                placeholder="Search Player A"
+                autocomplete="off"
+                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cricketGreen"
+              />
+              <ul
+                id="compareADropdownList"
+                class="hidden absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg text-sm"
+              ></ul>
+            </div>
           </div>
           <div>
             <label for="compareBSelect" class="block text-xs font-semibold mb-1">Player B</label>
-            <select id="compareBSelect" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></select>
+            <div class="relative">
+              <input
+                id="compareBSelect"
+                type="text"
+                placeholder="Search Player B"
+                autocomplete="off"
+                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cricketGreen"
+              />
+              <ul
+                id="compareBDropdownList"
+                class="hidden absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg text-sm"
+              ></ul>
+            </div>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3 text-sm mb-3">
