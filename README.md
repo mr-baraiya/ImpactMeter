@@ -1,62 +1,90 @@
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 # ImpactMeter
 
-ImpactMeter is a context-aware IPL player analytics system that converts ball-by-ball events into an interpretable `IM_score` (`0-100`) with pressure and clutch intelligence.
+**ImpactMeter** is a context-aware cricket analytics system that converts ball-by-ball IPL data into an interpretable **Impact Metric (`IM_score`) ranging from 0–100**.
+It evaluates player performance using **match context, pressure situations, and recent form**.
 
-## Why This Project
+Live Demo:
+[https://mr-baraiya.github.io/ImpactMeter/](https://mr-baraiya.github.io/ImpactMeter/)
 
-Traditional metrics (runs, strike rate, wickets) miss match context. ImpactMeter models:
+---
 
-- `Performance`: runs, strike rate, batter/bowler impact
-- `Context`: powerplay, middle overs, death overs
-- `Situation`: pressure-aware contribution and clutch behavior
-- `Recency`: rolling and weighted recent-match form
+# Why ImpactMeter
 
-## Requirements
+Traditional cricket metrics such as **runs, strike rate, or wickets** fail to capture *when* and *how important* a performance was.
 
-- Python `3.10+` (recommended)
-- `pip`
-- A local web server to open `index.html` (Python `http.server` is enough)
+ImpactMeter improves this by modeling:
 
-## Project Structure
+* **Performance** – runs, strike rate, batter/bowler impact
+* **Context** – powerplay, middle overs, death overs
+* **Situation** – pressure-aware contribution and clutch performance
+* **Recency** – rolling and weighted recent-match form
 
-```text
-ImpactMeter/
-|-- index.html
-|-- script.js
-|-- requirements.txt
-|-- data/
-|   |-- raw/ipl_json/
-|   |-- processed/ball_by_ball.csv
-|   `-- features/
-|       |-- impact_dataset.csv
-|       `-- player_impact_scores.csv
-|-- models/
-|   |-- ml_impact_scores.csv
-|   `-- ml_feature_importance.csv
-|-- scripts/
-|   |-- json_to_csv.py
-|   |-- run_impact_model.py
-|   `-- run_ml_assisted_impact.py
-|-- notebooks/
-|   |-- analysis.ipynb
-|   |-- feature_engineering.ipynb
-|   |-- impact_model.ipynb
-|   `-- ml_assisted_impact.ipynb
-|-- docs/
-|   |-- 01_problem_definition.md
-|   |-- 02_dataset.md
-|   |-- 03_feature_engineering.md
-|   |-- 04_impact_model.md
-|   |-- 05_algorithm_pipeline.md
-|   |-- 06_results.md
-|   |-- 07_edge_cases.md
-|   `-- 08_impact_metric_explanation.md
-`-- frontend/
-    `-- ImpactMeter_Logic_Design_Document.html
+Core idea:
+
+```
+Impact = Performance × Context × Pressure
 ```
 
-## Setup
+This produces a normalized **Impact Score (0–100)**.
+
+---
+
+# Requirements
+
+* Python **3.10+**
+* `pip`
+* A local web server (Python `http.server` works)
+
+---
+
+# Project Structure
+
+```
+ImpactMeter/
+│
+├── index.html
+├── script.js
+├── requirements.txt
+│
+├── data/
+│   ├── raw/ipl_json/
+│   ├── processed/ball_by_ball.csv
+│   └── features/
+│       ├── impact_dataset.csv
+│       └── player_impact_scores.csv
+│
+├── models/
+│   ├── ml_impact_scores.csv
+│   └── ml_feature_importance.csv
+│
+├── scripts/
+│   ├── json_to_csv.py
+│   ├── run_impact_model.py
+│   └── run_ml_assisted_impact.py
+│
+├── notebooks/
+│   ├── analysis.ipynb
+│   ├── feature_engineering.ipynb
+│   ├── impact_model.ipynb
+│   └── ml_assisted_impact.ipynb
+│
+├── docs/
+│   ├── 01_problem_definition.md
+│   ├── 02_dataset.md
+│   ├── 03_feature_engineering.md
+│   ├── 04_impact_model.md
+│   ├── 05_algorithm_pipeline.md
+│   ├── 06_results.md
+│   ├── 07_edge_cases.md
+│   └── 08_impact_metric_explanation.md
+│
+└── frontend/
+    └── ImpactMeter_Logic_Design_Document.html
+```
+
+---
+
+# Setup
 
 Run from project root:
 
@@ -67,123 +95,183 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-## Quickstart (End-to-End)
+---
 
-If you want a complete rebuild and fresh outputs:
+# Quickstart (End-to-End)
 
-```powershell
-# 1) Raw JSON -> ball-by-ball CSV
+To rebuild the full pipeline:
+
+```
+# Convert Cricsheet JSON → ball-by-ball dataset
 python scripts/json_to_csv.py
 
-# 2) Build feature dataset
-#    Run all cells in notebooks/feature_engineering.ipynb
+# Run feature engineering notebook
+notebooks/feature_engineering.ipynb
 
-# 3) Rule-based impact outputs
+# Generate rule-based impact scores
 python scripts/run_impact_model.py
 
-# 4) ML-assisted outputs (saved to models/)
+# Generate ML-assisted validation scores
 python scripts/run_ml_assisted_impact.py
 
-# 5) Start dashboard
-python -m http.server 8000
-```
-
-Then open `http://localhost:8000`.
-
-## Detailed Pipeline
-
-### 1. Convert raw IPL JSON
-
-```powershell
-python scripts/json_to_csv.py
-```
-
-Output:
-
-- `data/processed/ball_by_ball.csv`
-
-### 2. Generate engineered features
-
-Run all cells in `notebooks/feature_engineering.ipynb`.
-
-Output:
-
-- `data/features/impact_dataset.csv`
-
-### 3. Build rule-based impact scores
-
-```powershell
-python scripts/run_impact_model.py
-```
-
-Output:
-
-- `data/features/player_impact_scores.csv`
-
-Main columns:
-
-- `player`
-- `match_id`
-- `match_date`
-- `impact_score`
-- `rolling_IM`
-- `weighted_IM`
-- `pressure_score`
-- `clutch_score`
-- `IM_score`
-
-### 4. Build ML-assisted scores and explainability
-
-```powershell
-python scripts/run_ml_assisted_impact.py
-```
-
-Outputs:
-
-- `models/ml_impact_scores.csv`
-- `models/ml_feature_importance.csv`
-
-Notes:
-
-- ML uses fixed scaling (not dataset min-max) for stability.
-- ML outputs are calibrated against rule scores to keep ML as a validation layer.
-
-## Run The Dashboard
-
-```powershell
+# Launch dashboard
 python -m http.server 8000
 ```
 
 Open:
 
-- `http://localhost:8000`
+```
+http://localhost:8000
+```
 
-Dashboard files:
+---
 
-- UI: `index.html`
-- Logic: `script.js`
+# Detailed Pipeline
 
-## Docs Navigation
+## 1. Convert Raw JSON
 
-Use this as the judge/mentor navigation hub:
+```
+python scripts/json_to_csv.py
+```
 
-- Problem Definition: [`docs/01_problem_definition.md`](docs/01_problem_definition.md)
-- Dataset: [`docs/02_dataset.md`](docs/02_dataset.md)
-- Feature Engineering: [`docs/03_feature_engineering.md`](docs/03_feature_engineering.md)
-- Impact Model: [`docs/04_impact_model.md`](docs/04_impact_model.md)
-- Algorithm Pipeline: [`docs/05_algorithm_pipeline.md`](docs/05_algorithm_pipeline.md)
-- Results: [`docs/06_results.md`](docs/06_results.md)
-- Edge Cases: [`docs/07_edge_cases.md`](docs/07_edge_cases.md)
-- Impact Metric Explanation: [`docs/08_impact_metric_explanation.md`](docs/08_impact_metric_explanation.md)
-- Technical Design (HTML): [`frontend/ImpactMeter_Logic_Design_Document.html`](frontend/ImpactMeter_Logic_Design_Document.html)
+Output:
 
-## Troubleshooting
+```
+data/processed/ball_by_ball.csv
+```
 
-- If CSVs fail to load in browser, ensure you started a local server from repo root.
-- If ML files are missing, run `python scripts/run_ml_assisted_impact.py` again.
-- If rule scores are missing, run `python scripts/run_impact_model.py` again.
-- If notebook paths differ, use script-based pipeline commands for reproducibility.
+---
 
-## Data Source
+## 2. Feature Engineering
 
-- Cricsheet IPL JSON: <https://cricsheet.org/>
+Run:
+
+```
+notebooks/feature_engineering.ipynb
+```
+
+Output:
+
+```
+data/features/impact_dataset.csv
+```
+
+Features include:
+
+* strike_rate
+* phase (powerplay / middle / death)
+* pressure_index
+* batter_impact_score
+* bowler_impact_score
+
+---
+
+## 3. Build Rule-Based Impact Scores
+
+```
+python scripts/run_impact_model.py
+```
+
+Output:
+
+```
+data/features/player_impact_scores.csv
+```
+
+Main columns:
+
+* player
+* match_id
+* match_date
+* impact_score
+* rolling_IM
+* weighted_IM
+* pressure_score
+* clutch_score
+* IM_score
+
+---
+
+## 4. ML-Assisted Impact Validation
+
+```
+python scripts/run_ml_assisted_impact.py
+```
+
+Outputs:
+
+```
+models/ml_impact_scores.csv
+models/ml_feature_importance.csv
+```
+
+ML is used for:
+
+* feature importance validation
+* score stability verification
+
+Rule-based scoring remains the **primary metric**.
+
+---
+
+# Dashboard
+
+Start server:
+
+```
+python -m http.server 8000
+```
+
+Open:
+
+```
+http://localhost:8000
+```
+
+Files used:
+
+* UI → `index.html`
+* Logic → `script.js`
+
+---
+
+# Documentation
+
+Main project documentation:
+
+* Problem Definition → `docs/01_problem_definition.md`
+* Dataset → `docs/02_dataset.md`
+* Feature Engineering → `docs/03_feature_engineering.md`
+* Impact Model → `docs/04_impact_model.md`
+* Algorithm Pipeline → `docs/05_algorithm_pipeline.md`
+* Results → `docs/06_results.md`
+* Edge Cases → `docs/07_edge_cases.md`
+* Impact Metric Explanation → `docs/08_impact_metric_explanation.md`
+* Technical Design → `frontend/ImpactMeter_Logic_Design_Document.html`
+
+---
+
+# Troubleshooting
+
+If CSV files fail to load in the browser:
+
+* ensure the server was started from repo root
+
+If ML outputs are missing:
+
+```
+python scripts/run_ml_assisted_impact.py
+```
+
+If rule scores are missing:
+
+```
+python scripts/run_impact_model.py
+```
+
+---
+
+# Data Source
+
+Cricsheet IPL dataset
+[https://cricsheet.org/](https://cricsheet.org/)
