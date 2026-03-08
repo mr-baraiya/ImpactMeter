@@ -1,3 +1,4 @@
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 # ImpactMeter
 
 ImpactMeter is a context-aware IPL player analytics system that converts ball-by-ball events into an interpretable `IM_score` (`0-100`) with pressure and clutch intelligence.
