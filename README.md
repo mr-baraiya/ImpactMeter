@@ -4,7 +4,7 @@
 It evaluates player performance using **match context, pressure situations, and recent form**.
 
 Live Demo:
-[https://mr-baraiya.github.io/ImpactMeter/](https://mr-baraiya.github.io/ImpactMeter/)
+[https://mr-baraiya.github.io/ImpactMeter](https://mr-baraiya.github.io/ImpactMeter)
 
 ---
 
