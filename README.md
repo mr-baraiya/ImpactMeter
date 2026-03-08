@@ -11,26 +11,6 @@ Traditional metrics (runs, strike rate, wickets) miss match context. ImpactMeter
 - `Situation`: pressure-aware contribution and clutch behavior
 - `Recency`: rolling and weighted recent-match form
 
-## Quick Judge View
-
-- Player Impact Score gauge (`IM_score`)
-- ML-assisted score and delta vs rule score
-- Last 10 match trend table + line chart
-- Pressure Index card (`Low/Medium/High`)
-- Clutch Performance card
-- Role-aware evaluation (batter/bowler/all-rounder)
-- Top impact leaderboard
-- Player-vs-player comparison
-- Random Forest feature-importance panel
-
-## Hackathon Metric Requirements
-
-- `0-100 normalization`: final `IM_score` is normalized to a `0-100` scale.
-- `Neutral baseline at 50`: `IM_score` is centered so `50` represents neutral/average impact.
-- `Rolling last 10 innings`: rolling metrics are computed with a 10-match window.
-- `Updated after every match`: score updates are generated per match in the batch pipeline (not ball-by-ball real-time).
-- `Recency influence`: recent innings are emphasized via rolling average + weighted last-10 scoring.
-
 ## Requirements
 
 - Python `3.10+` (recommended)
@@ -195,15 +175,6 @@ Use this as the judge/mentor navigation hub:
 - Edge Cases: [`docs/07_edge_cases.md`](docs/07_edge_cases.md)
 - Impact Metric Explanation: [`docs/08_impact_metric_explanation.md`](docs/08_impact_metric_explanation.md)
 - Technical Design (HTML): [`frontend/ImpactMeter_Logic_Design_Document.html`](frontend/ImpactMeter_Logic_Design_Document.html)
-
-## 1-Minute Demo Flow
-
-1. Open dashboard and select `V Kohli` (default).
-2. Show `Impact Score`, `ML-Assisted Impact`, and delta.
-3. Show trend table + chart.
-4. Show pressure and clutch cards.
-5. Show role-based snapshot and phase contribution.
-6. Show feature-importance panel and compare two players.
 
 ## Troubleshooting
 
